@@ -60,7 +60,7 @@ namespace Aqua
         /// <summary>
         /// The ConsumerSettings to use when consuming messages.
         /// </summary>
-        private readonly ConsumerSettings agentSettings;
+        private readonly ConsumerSettings consumerSettings;
 
         /// <summary>
         /// The CloudQueueMessage which defines the dequeued message.
@@ -84,6 +84,8 @@ namespace Aqua
 
         #endregion
 
+        #region C'tors
+
         /// <summary>
         /// Initializes a new instance of JobExecutionContext.
         /// </summary>
@@ -101,11 +103,13 @@ namespace Aqua
             factory = serviceProvider.GetService<JobFactory>();
             Debug.Assert(null != factory, "The factory must not be null.");
 
-            agentSettings = serviceProvider.GetService<ConsumerSettings>();
-            Debug.Assert(null != agentSettings, "The agent settings must not be null.");
+            consumerSettings = serviceProvider.GetService<ConsumerSettings>();
+            Debug.Assert(null != consumerSettings, "The consumer settings must not be null.");
 
             job = new Lazy<IJob>(GetJob);
         }
+
+        #endregion
 
         #region IDisposable Implementation
 
@@ -168,6 +172,12 @@ namespace Aqua
 
         #region Private Methods
 
+        /// <summary>
+        /// Dequeues a message from the current queue.
+        /// </summary>
+        /// <returns>
+        /// A reference to this instance.
+        /// </returns>
         private JobExecutionContext Dequeue()
         {
             message = queue.GetMessage(VisibilityTimeout);
@@ -175,6 +185,18 @@ namespace Aqua
             return this;
         }
 
+        /// <summary>
+        /// Gets the IJob for the current message.
+        /// </summary>
+        /// <returns>
+        /// An instance of IJob.
+        /// </returns>
+        /// <exception cref="MessageFormatException">
+        /// A MessageFormatException is thrown if the message is badly formatted.
+        /// </exception>
+        /// <exception cref="UnknownJobException">
+        /// An UnknownJobException is thrown if the job from the message is not registered in the current JobFactory.
+        /// </exception>
         private IJob GetJob()
         {
             string body = GetMessageBody();
@@ -205,6 +227,12 @@ namespace Aqua
             }
         }
 
+        /// <summary>
+        /// Gets the message string from the body of the current message.
+        /// </summary>
+        /// <returns>
+        /// A string which contains the body of the current message.
+        /// </returns>
         private string GetMessageBody()
         {
             Debug.Assert(null != message, "The message must not be null.");
@@ -222,6 +250,14 @@ namespace Aqua
             return body;
         }
 
+        /// <summary>
+        /// Periodically refreshes the visibility timeout for the current message in the queue to prevent other
+        /// consumers from seeing and dequeueing the message.
+        /// </summary>
+        /// <param name="task">
+        /// The Task which tracked the previous wait, or null if this is the first attempt at refreshing the visibility
+        /// timeout.
+        /// </param>
         private void RefreshVisibilityTimeout(Task task)
         {
             if (null != task)
@@ -241,30 +277,39 @@ namespace Aqua
                 .ContinueWith(RefreshVisibilityTimeout, cancellationTokenSource.Token);
         }
 
+        /// <summary>
+        /// Applies the BadMessageHandling behavior from the current ConsumerSettings.
+        /// </summary>
         private void ApplyBadMessageHandling()
         {
-            switch (agentSettings.BadMessageHandling)
+            switch (consumerSettings.BadMessageHandling)
             {
                 case BadMessageHandling.Requeue:
                 case BadMessageHandling.Delete:
-                    ApplyBadMessageHandling(agentSettings.BadMessageHandling);
+                    ApplyBadMessageHandling(consumerSettings.BadMessageHandling);
                     break;
 
                 case BadMessageHandling.DecidePerMessage:
-                    if (null == agentSettings.BadMessageHandlingProvider)
+                    if (null == consumerSettings.BadMessageHandlingProvider)
                     {
                         throw new InvalidOperationException("The BadMessageHandlingProvider must not be null when 'DecidePerMessage' is used.");
                     }
 
-                    ApplyBadMessageHandling(agentSettings.BadMessageHandlingProvider(message));
+                    ApplyBadMessageHandling(consumerSettings.BadMessageHandlingProvider(message));
                     break;
 
                 default:
-                    Debug.Fail("Unsupported BadMessageHandling: " + agentSettings.BadMessageHandling);
-                    throw new NotSupportedException("Unsupported BadMessageHandling: " + agentSettings.BadMessageHandling);
+                    Debug.Fail("Unsupported BadMessageHandling: " + consumerSettings.BadMessageHandling);
+                    throw new NotSupportedException("Unsupported BadMessageHandling: " + consumerSettings.BadMessageHandling);
             }
         }
 
+        /// <summary>
+        /// Applies the given BadMessageHandling to the current message.
+        /// </summary>
+        /// <param name="handling">
+        /// The BadMessageHandling value to apply.
+        /// </param>
         private void ApplyBadMessageHandling(BadMessageHandling handling)
         {
             switch (handling)
@@ -283,32 +328,44 @@ namespace Aqua
             }
         }
 
+        /// <summary>
+        /// Applies the UnknownJobHandling behavior from the current ConsumerSettings.
+        /// </summary>
+        /// <param name="jobDesc">
+        /// The JobDescriptor that describes the unknown job.
+        /// </param>
         private void ApplyUnknownJobHandling(JobDescriptor jobDesc)
         {
             Debug.Assert(null != jobDesc, "The job descriptor must not be null.");
 
-            switch (agentSettings.UnknownJobHandling)
+            switch (consumerSettings.UnknownJobHandling)
             {
                 case UnknownJobHandling.Requeue:
                 case UnknownJobHandling.Delete:
-                    ApplyUnknownJobHandling(agentSettings.UnknownJobHandling);
+                    ApplyUnknownJobHandling(consumerSettings.UnknownJobHandling);
                     break;
 
                 case UnknownJobHandling.DedicePerJob:
-                    if (null == agentSettings.UnknownJobHandlingProvider)
+                    if (null == consumerSettings.UnknownJobHandlingProvider)
                     {
                         throw new InvalidOperationException("The UnknownJobHandlingProvider must not be null when 'DecidePerMessage' is used.");
                     }
 
-                    ApplyUnknownJobHandling(agentSettings.UnknownJobHandlingProvider(jobDesc));
+                    ApplyUnknownJobHandling(consumerSettings.UnknownJobHandlingProvider(jobDesc));
                     break;
 
                 default:
-                    Debug.Fail("Unsupported UnknownJobHandling: " + agentSettings.UnknownJobHandling);
-                    throw new NotSupportedException("Unsupported UnknownJobHandling: " + agentSettings.UnknownJobHandling);
+                    Debug.Fail("Unsupported UnknownJobHandling: " + consumerSettings.UnknownJobHandling);
+                    throw new NotSupportedException("Unsupported UnknownJobHandling: " + consumerSettings.UnknownJobHandling);
             }
         }
 
+        /// <summary>
+        /// Applies the given UnknownJobHandling behavior.
+        /// </summary>
+        /// <param name="handling">
+        /// The UnknownJobHandling value to apply.
+        /// </param>
         private void ApplyUnknownJobHandling(UnknownJobHandling handling)
         {
             switch (handling)
@@ -327,6 +384,12 @@ namespace Aqua
             }
         }
 
+        /// <summary>
+        /// Disposes this instance.
+        /// </summary>
+        /// <param name="disposing">
+        /// A flag which indicates whether or not this call is from the Dispose or from the finalizer.
+        /// </param>
         private void Dispose(bool disposing)
         {
             if (disposed)
@@ -344,6 +407,10 @@ namespace Aqua
             disposed = true;
         }
 
+        /// <summary>
+        /// Updates the queue by either deleting the message from it, or by resetting the visibility timeout and thus
+        /// effectively requeue the message in the queue.
+        /// </summary>
         private void UpdateQueue()
         {
             if (null != message)
