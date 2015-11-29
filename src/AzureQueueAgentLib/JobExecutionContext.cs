@@ -149,6 +149,7 @@ namespace Aqua
             {
                 // TODO: Log the exception
                 shouldDeleteMessage = false;
+                throw;
             }
         }
 
@@ -299,7 +300,6 @@ namespace Aqua
                     break;
 
                 default:
-                    Debug.Fail("Unsupported BadMessageHandling: " + consumerSettings.BadMessageHandling);
                     throw new NotSupportedException("Unsupported BadMessageHandling: " + consumerSettings.BadMessageHandling);
             }
         }
@@ -323,7 +323,6 @@ namespace Aqua
 
                 case BadMessageHandling.DecidePerMessage:
                 default:
-                    Debug.Fail("Unsupported BadMessageHandling: " + handling);
                     throw new NotSupportedException("Unsupported BadMessageHandling: " + handling);
             }
         }
@@ -348,14 +347,13 @@ namespace Aqua
                 case UnknownJobHandling.DedicePerJob:
                     if (null == consumerSettings.UnknownJobHandlingProvider)
                     {
-                        throw new InvalidOperationException("The UnknownJobHandlingProvider must not be null when 'DecidePerMessage' is used.");
+                        throw new InvalidOperationException("The UnknownJobHandlingProvider must not be null when 'DedicePerJob' is used.");
                     }
 
                     ApplyUnknownJobHandling(consumerSettings.UnknownJobHandlingProvider(jobDesc));
                     break;
 
                 default:
-                    Debug.Fail("Unsupported UnknownJobHandling: " + consumerSettings.UnknownJobHandling);
                     throw new NotSupportedException("Unsupported UnknownJobHandling: " + consumerSettings.UnknownJobHandling);
             }
         }
@@ -379,7 +377,6 @@ namespace Aqua
 
                 case UnknownJobHandling.DedicePerJob:
                 default:
-                    Debug.Fail("Unsupported UnknownJobHandling: " + handling);
                     throw new NotSupportedException("Unsupported UnknownJobHandling: " + handling);
             }
         }

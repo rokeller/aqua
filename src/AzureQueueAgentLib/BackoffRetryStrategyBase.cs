@@ -65,7 +65,7 @@ namespace Aqua
         /// </returns>
         public bool ShouldRetry(int attempt)
         {
-            return attempt <= RetryCount;
+            return attempt >= 1 && attempt <= RetryCount;
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace Aqua
         /// </returns>
         public TimeSpan GetWaitTime(int attempt)
         {
-            if (attempt > RetryCount + 1)
+            if (attempt < 1 || attempt > RetryCount)
             {
                 throw new ArgumentOutOfRangeException("attempt");
             }

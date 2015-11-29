@@ -45,6 +45,10 @@ namespace Aqua
             {
                 throw new ArgumentNullException("storageAccount");
             }
+            else if (String.IsNullOrWhiteSpace(queueName))
+            {
+                throw new ArgumentNullException("queueName");
+            }
 
             client = storageAccount.CreateCloudQueueClient();
 

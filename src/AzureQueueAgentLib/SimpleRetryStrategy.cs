@@ -54,7 +54,7 @@ namespace Aqua
         /// </returns>
         public bool ShouldRetry(int attempt)
         {
-            return attempt <= RetryCount;
+            return attempt >= 1 && attempt <= RetryCount;
         }
 
         /// <summary>
