@@ -3,44 +3,55 @@
 namespace Aqua
 {
     /// <summary>
-    /// Implements IDequeStrategy with a maximum number of retries and a constant wait time between tries.
+    /// Implements IDequeStrategy with pre-calculated back off times for a maximum number of retries.
     /// </summary>
-    public sealed class SimpleRetryDequeStrategy : IDequeStrategy
+    public abstract class BackoffRetryStrategyBase : IRetryStrategy
     {
+        #region Fields
+
         /// <summary>
-        /// Initializes a new instance of SimpleRetryDequeStrategy.
+        /// The pre-calculated wait times for the different attempts.
+        /// </summary>
+        private readonly TimeSpan[] waitTimes;
+
+        #endregion
+
+        #region C'tors
+
+        /// <summary>
+        /// Initializes a new instance of BackoffRetryStrategyBase using the given maximum retry count and
+        /// pre-calculated wait times for the attempts.
         /// </summary>
         /// <param name="retryCount">
         /// The maximum number of retries to allow. Passing 0 implies no retries, i.e. a single try to dequeue a message
         /// is used.
         /// </param>
-        /// <param name="waitTime">
-        /// A TimeSpan value which defines the time to wait before retries.
+        /// <param name="waitTimes">
+        /// The pre-calculated wait times for the attempts.
         /// </param>
-        public SimpleRetryDequeStrategy(int retryCount, TimeSpan waitTime)
+        protected BackoffRetryStrategyBase(int retryCount, TimeSpan[] waitTimes)
         {
-            if (retryCount < 0)
+            if (null == waitTimes)
+            {
+                throw new ArgumentNullException("waitTimes");
+            }
+            else if (retryCount != waitTimes.Length)
             {
                 throw new ArgumentOutOfRangeException("retryCount");
             }
-            else if (waitTime.TotalMilliseconds < 0)
-            {
-                throw new ArgumentOutOfRangeException("waitTime");
-            }
 
             RetryCount = retryCount;
-            WaitTime = waitTime;
+            this.waitTimes = waitTimes;
         }
+
+        #endregion
 
         /// <summary>
         /// Gets or sets the maximum number of retries to allow.
         /// </summary>
         public int RetryCount { get; private set; }
 
-        /// <summary>
-        /// Gets or sets the TimeSpan value which defines how long to wait between tries.
-        /// </summary>
-        public TimeSpan WaitTime { get; private set; }
+        #region IDequeStrategy Implementation
 
         /// <summary>
         /// Checks if we should retry after an unsuccessful attempt to dequeue a message.
@@ -70,7 +81,14 @@ namespace Aqua
         /// </returns>
         public TimeSpan GetWaitTime(int attempt)
         {
-            return WaitTime;
+            if (attempt > RetryCount + 1)
+            {
+                throw new ArgumentOutOfRangeException("attempt");
+            }
+
+            return waitTimes[attempt - 1];
         }
+
+        #endregion
     }
 }

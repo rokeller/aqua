@@ -3,15 +3,15 @@
 namespace Aqua
 {
     /// <summary>
-    /// Implements IDequeStrategy with exponentional back off based on a maximum number of retries and a base wait time.
+    /// Implements IDequeStrategy with linear back off based on a maximum number of retries and a base wait time.
     /// </summary>
-    public sealed class ExponentialBackoffDequeueStrategy : BackoffDequeueStrategyBase
+    public sealed class LinearBackoffRetryStrategy : BackoffRetryStrategyBase
     {
         #region C'tors
 
         /// <summary>
-        /// Initializes a new instance of ExponentialBackoffDequeueStrategy using the given maximum number of retries
-        /// and the specified baseWaitTime.
+        /// Initializes a new instance of LinearBackoffRetryStrategy using the given maximum number of retries and
+        /// the specified baseWaitTime.
         /// </summary>
         /// <param name="retryCount">
         /// The maximum number of retries to allow. Passing 0 implies no retries, i.e. a single try to dequeue a message
@@ -19,24 +19,24 @@ namespace Aqua
         /// </param>
         /// <param name="baseWaitTime">
         /// A TimeSpan value which defines the base wait time, i.e. the wait time before the first retry. For the
-        /// second, retry this strategy will wait twice as long, for the third, 4 times as long and so on.
+        /// second, retry this strategy will wait twice as long, for the third, 3 times as long and so on.
         /// </param>
-        public ExponentialBackoffDequeueStrategy(int retryCount, TimeSpan baseWaitTime)
-            : base(retryCount, GetWaitTimes(retryCount, baseWaitTime))
+        public LinearBackoffRetryStrategy(int retryCount, TimeSpan baseWaitTime) :
+            base(retryCount, GetWaitTimes(retryCount, baseWaitTime))
         {
         }
 
         #endregion
 
         /// <summary>
-        /// Pre-calculates the exponentional growing wait times for the different attempts.
+        /// Pre-calculates the linear growing wait times for the different attempts.
         /// </summary>
         /// <param name="retryCount">
         /// The maximum number of retries to calculate the wait times for.
         /// </param>
         /// <param name="baseWaitTime">
         /// A TimeSpan value which defines the base wait time, i.e. the wait time before the first retry. For the
-        /// second, retry this strategy will wait twice as long, for the third, 4 times as long and so on.
+        /// second, retry this strategy will wait twice as long, for the third, 3 times as long and so on.
         /// </param>
         /// <returns>
         /// An array of TimeSpan values of length retryCount.
@@ -58,7 +58,7 @@ namespace Aqua
 
             for (int i = 1; i < waitTimes.Length; i++)
             {
-                waitTimes[i] = waitTimes[i - 1].Add(waitTimes[i - 1]);
+                waitTimes[i] = waitTimes[i - 1].Add(baseWaitTime);
             }
 
             return waitTimes;

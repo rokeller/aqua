@@ -3,19 +3,44 @@
 namespace Aqua
 {
     /// <summary>
-    /// Implements IDequeStrategy which does not allow any retries at all.
+    /// Implements IDequeStrategy with a maximum number of retries and a constant wait time between tries.
     /// </summary>
-    public sealed class SingleTryDequeStrategy : IDequeStrategy
+    public sealed class SimpleRetryStrategy : IRetryStrategy
     {
         /// <summary>
-        /// The default instance of SingleTryDequeStrategy.
+        /// Initializes a new instance of SimpleRetryStrategy.
         /// </summary>
-        public static readonly SingleTryDequeStrategy Default = new SingleTryDequeStrategy();
+        /// <param name="retryCount">
+        /// The maximum number of retries to allow. Passing 0 implies no retries, i.e. a single try to dequeue a message
+        /// is used.
+        /// </param>
+        /// <param name="waitTime">
+        /// A TimeSpan value which defines the time to wait before retries.
+        /// </param>
+        public SimpleRetryStrategy(int retryCount, TimeSpan waitTime)
+        {
+            if (retryCount < 0)
+            {
+                throw new ArgumentOutOfRangeException("retryCount");
+            }
+            else if (waitTime.TotalMilliseconds < 0)
+            {
+                throw new ArgumentOutOfRangeException("waitTime");
+            }
+
+            RetryCount = retryCount;
+            WaitTime = waitTime;
+        }
 
         /// <summary>
-        /// Initializes a new instance of SingleTryDequeStrategy.
+        /// Gets or sets the maximum number of retries to allow.
         /// </summary>
-        private SingleTryDequeStrategy() { }
+        public int RetryCount { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the TimeSpan value which defines how long to wait between tries.
+        /// </summary>
+        public TimeSpan WaitTime { get; private set; }
 
         /// <summary>
         /// Checks if we should retry after an unsuccessful attempt to dequeue a message.
@@ -29,7 +54,7 @@ namespace Aqua
         /// </returns>
         public bool ShouldRetry(int attempt)
         {
-            return false;
+            return attempt <= RetryCount;
         }
 
         /// <summary>
@@ -45,7 +70,7 @@ namespace Aqua
         /// </returns>
         public TimeSpan GetWaitTime(int attempt)
         {
-            throw new NotSupportedException();
+            return WaitTime;
         }
     }
 }

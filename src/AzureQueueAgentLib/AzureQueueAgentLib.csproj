@@ -69,24 +69,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BackoffDequeueStrategyBase.cs" />
+    <Compile Include="AddJitterRetryStrategy.cs" />
+    <Compile Include="BackoffRetryStrategyBase.cs" />
     <Compile Include="ConnectionSettings.cs" />
     <Compile Include="Consumer.cs" />
     <Compile Include="ConsumerSettings.cs" />
-    <Compile Include="ExponentialBackoffDequeueStrategy.cs" />
+    <Compile Include="ExponentialBackoffRetryStrategy.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="HelloWho.cs" />
-    <Compile Include="IDequeStrategy.cs" />
     <Compile Include="IJob.cs" />
+    <Compile Include="IRetryStrategy.cs" />
     <Compile Include="JobBase.cs" />
     <Compile Include="JobDescriptor.cs" />
     <Compile Include="JobExecutionContext.cs" />
     <Compile Include="JobFactory.cs" />
-    <Compile Include="LinearBackoffDequeueStrategy.cs" />
+    <Compile Include="LinearBackoffRetryStrategy.cs" />
     <Compile Include="MessageFormatException.cs" />
+    <Compile Include="NoRetryStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SimpleRetryDequeStrategy.cs" />
-    <Compile Include="SingleTryDequeStrategy.cs" />
+    <Compile Include="SimpleRetryStrategy.cs" />
     <Compile Include="UnknownJobException.cs" />
   </ItemGroup>
   <ItemGroup>

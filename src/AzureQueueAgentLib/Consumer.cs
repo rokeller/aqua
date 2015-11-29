@@ -94,17 +94,17 @@ namespace Aqua
         /// </summary>
         public void One()
         {
-            One(SingleTryDequeStrategy.Default);
+            One(NoRetryStrategy.Default);
         }
 
         /// <summary>
-        /// Consumes one message from the queue, applying the given IDequeueStrategy to wait for a message if the queue
+        /// Consumes one message from the queue, applying the given IRetryStrategy to wait for a message if the queue
         /// is empty.
         /// </summary>
         /// <param name="dequeueStrategy">
-        /// An instance of IDequeueStrategy which defines how long and how often to query the queue for a single message.
+        /// An instance of IRetryStrategy which defines how long and how often to query the queue for a single message.
         /// </param>
-        public void One(IDequeStrategy dequeueStrategy)
+        public void One(IRetryStrategy dequeueStrategy)
         {
             if (null == dequeueStrategy)
             {

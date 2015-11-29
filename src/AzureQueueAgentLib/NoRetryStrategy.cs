@@ -3,10 +3,20 @@
 namespace Aqua
 {
     /// <summary>
-    /// Defines the contract for a strategy to dequeue messages from an Azure Storage Account Queue.
+    /// Implements IDequeStrategy which does not allow any retries at all.
     /// </summary>
-    public interface IDequeStrategy
+    public sealed class NoRetryStrategy : IRetryStrategy
     {
+        /// <summary>
+        /// The default instance of NoRetryStrategy.
+        /// </summary>
+        public static readonly NoRetryStrategy Default = new NoRetryStrategy();
+
+        /// <summary>
+        /// Initializes a new instance of NoRetryStrategy.
+        /// </summary>
+        private NoRetryStrategy() { }
+
         /// <summary>
         /// Checks if we should retry after an unsuccessful attempt to dequeue a message.
         /// </summary>
@@ -17,7 +27,10 @@ namespace Aqua
         /// <returns>
         /// True if another attempt to dequeue a message should be made, false otherwise.
         /// </returns>
-        bool ShouldRetry(int attempt);
+        public bool ShouldRetry(int attempt)
+        {
+            return false;
+        }
 
         /// <summary>
         /// Gets a TimeSpan value which defines how long to wait before trying again after an unsuccessful attempt to
@@ -30,6 +43,9 @@ namespace Aqua
         /// <returns>
         /// A TimeSpan value which defines how long to wait before the next attempt.
         /// </returns>
-        TimeSpan GetWaitTime(int attempt);
+        public TimeSpan GetWaitTime(int attempt)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
