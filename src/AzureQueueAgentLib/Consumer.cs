@@ -72,10 +72,6 @@ namespace Aqua
             {
                 throw new ArgumentNullException("factory");
             }
-            else if (null == settings)
-            {
-                throw new ArgumentNullException("settings");
-            }
 
             queue = connectionSettings.GetQueue();
             queue.CreateIfNotExists();
