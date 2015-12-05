@@ -79,10 +79,15 @@
     <Compile Include="ConsumerTest.cs" />
     <Compile Include="ExponentialBackoffRetryStrategyTest.cs" />
     <Compile Include="JobExecutionContextTest.cs" />
+    <Compile Include="JobFactoryTest.cs" />
+    <Compile Include="JobTest.cs" />
     <Compile Include="LinearBackoffRetryStrategyTest.cs" />
     <Compile Include="MessageFormatExceptionTest.cs" />
     <Compile Include="MockJob.cs" />
+    <Compile Include="NoopJob.cs" />
+    <Compile Include="ProducerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UnknownJob.cs" />
     <Compile Include="UnknownJobExceptionTest.cs" />
   </ItemGroup>
   <ItemGroup>

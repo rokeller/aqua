@@ -89,6 +89,7 @@
     <Compile Include="LinearBackoffRetryStrategy.cs" />
     <Compile Include="MessageFormatException.cs" />
     <Compile Include="NoRetryStrategy.cs" />
+    <Compile Include="Producer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleRetryStrategy.cs" />
     <Compile Include="UnknownJobException.cs" />

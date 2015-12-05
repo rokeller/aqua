@@ -7,7 +7,7 @@ using System.Reflection;
 namespace Aqua
 {
     /// <summary>
-    /// A factory to create instance of IJob from JobDescriptor objects.
+    /// A factory to create instances of IJob from JobDescriptor objects and vice versa.
     /// </summary>
     /// <remarks>
     /// This class is not thread-safe.
@@ -17,9 +17,14 @@ namespace Aqua
         #region Fields
 
         /// <summary>
-        /// The Dictionary which tracks the registered job types by their names.
+        /// The Dictionary which tracks the registered job specs by their names.
         /// </summary>
-        private readonly Dictionary<string, JobSpec> specMap = new Dictionary<string, JobSpec>();
+        private readonly Dictionary<string, JobSpec> nameToSpecMap = new Dictionary<string, JobSpec>();
+
+        /// <summary>
+        /// The Dictionary which tracks the registered job specs by their types.
+        /// </summary>
+        private readonly Dictionary<Type, JobSpec> typeToSpecMap = new Dictionary<Type, JobSpec>();
 
         #endregion
 
@@ -42,7 +47,9 @@ namespace Aqua
                 throw new ArgumentException("The jobType must implement the IJob interface.");
             }
 
-            specMap.Add(jobType.Name, new JobSpec(jobType));
+            JobSpec spec = new JobSpec(jobType, jobType.Name);
+            nameToSpecMap.Add(jobType.Name, spec);
+            typeToSpecMap.Add(jobType, spec);
         }
 
         /// <summary>
@@ -52,7 +59,7 @@ namespace Aqua
         /// The JobDescriptor to create an instance of IJob for.
         /// </param>
         /// <returns>
-        /// An instance of IJob that was created for the given JobDescriptor or null, if no matching job was found.
+        /// An instance of IJob that was created for the given JobDescriptor.
         /// </returns>
         public IJob CreateJob(JobDescriptor descriptor)
         {
@@ -63,7 +70,7 @@ namespace Aqua
 
             JobSpec spec;
 
-            if (!specMap.TryGetValue(descriptor.Job, out spec))
+            if (!nameToSpecMap.TryGetValue(descriptor.Job, out spec))
             {
                 throw new UnknownJobException(descriptor.QueueMessageId, descriptor.Job);
             }
@@ -71,6 +78,34 @@ namespace Aqua
             IJob job = spec.CreateAndBind(descriptor.Properties);
 
             return job;
+        }
+
+        /// <summary>
+        /// Tries to create a JobDescriptor for the given job.
+        /// </summary>
+        /// <param name="job">
+        /// The IJob object to create a descriptor for.
+        /// </param>
+        /// <returns>
+        /// An instance of JobDescriptor that describes the job.
+        /// </returns>
+        public JobDescriptor CreateDescriptor(IJob job)
+        {
+            if (null == job)
+            {
+                throw new ArgumentNullException("job");
+            }
+
+            JobSpec spec;
+
+            if (!typeToSpecMap.TryGetValue(job.GetType(), out spec))
+            {
+                throw new UnknownJobException(null, job.GetType().Name);
+            }
+
+            JobDescriptor descriptor = spec.Describe(job);
+
+            return descriptor;
         }
 
         #endregion
@@ -87,12 +122,17 @@ namespace Aqua
             /// <param name="jobType">
             /// The Type of the job this instance is tracking.
             /// </param>
-            public JobSpec(Type jobType)
+            /// <param name="name">
+            /// The name of the job this instance is tracking.
+            /// </param>
+            public JobSpec(Type jobType, string name)
             {
                 Debug.Assert(null != jobType, "The job type must not be null.");
                 Debug.Assert(jobType.GetInterface("IJob") == typeof(IJob), "The job type must implement IJob.");
+                Debug.Assert(!String.IsNullOrWhiteSpace(name), "The name must not be null/blank.");
 
                 Type = jobType;
+                Name = name;
                 Properties = new Dictionary<string, PropertyInfo>(StringComparer.CurrentCulture);
 
                 InitProperties();
@@ -128,9 +168,56 @@ namespace Aqua
             }
 
             /// <summary>
+            /// Creates a JobDescriptor object for the given job.
+            /// </summary>
+            /// <param name="job">
+            /// The IJob to create the JobDescriptor for.
+            /// </param>
+            /// <returns>
+            /// An instance of JobDescriptor that describes the job.
+            /// </returns>
+            public JobDescriptor Describe(IJob job)
+            {
+                Debug.Assert(null != job, "The job must not be null.");
+                JobDescriptor descriptor = new JobDescriptor();
+
+                descriptor.Job = Name;
+                Debug.Assert(null != Properties, "The properties dictionary must not be null.");
+
+                if (0 < Properties.Count)
+                {
+                    descriptor.Properties = new Dictionary<string, JToken>(Properties.Count);
+
+                    foreach (KeyValuePair<string, PropertyInfo> prop in Properties)
+                    {
+                        object val = prop.Value.GetValue(job);
+                        JToken token;
+
+                        if (null == val)
+                        {
+                            token = JValue.CreateNull();
+                        }
+                        else
+                        {
+                            token = JToken.FromObject(val);
+                        }
+
+                        descriptor.Properties.Add(prop.Key, token);
+                    }
+                }
+
+                return descriptor;
+            }
+
+            /// <summary>
             /// Gets or sets the Type of the job this instance can create and bind.
             /// </summary>
             public Type Type { get; private set; }
+
+            /// <summary>
+            /// Gets or sets the name of the job this instance tracks.
+            /// </summary>
+            public string Name { get; private set; }
 
             /// <summary>
             /// Gets or sets a Dictionary which maps property names to the corresponding PropertyInfo objects.
@@ -146,7 +233,7 @@ namespace Aqua
 
                 foreach (PropertyInfo prop in props)
                 {
-                    if (prop.CanWrite)
+                    if (prop.CanRead && prop.CanWrite)
                     {
                         Properties.Add(prop.Name, prop);
                     }
