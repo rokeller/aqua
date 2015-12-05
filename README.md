@@ -10,7 +10,7 @@ Currently, jobs are specified in JSON similar to the below.
 { "Job": "HelloWho", "Properties": { "Who": "World" } }
 ```
 
-A message with the above content can be interpreted to instruct a worker (using aqua) to execute the `HelloWho` job with
+You can use the `Producer` to create and enqueue job requests, or you can craft them manually. A message with the above content can be interpreted to instruct a worker (using aqua) to execute the `HelloWho` job with
 the parameter `Who` set to `World`.
 
 Let there be a registered job type such as the following:
