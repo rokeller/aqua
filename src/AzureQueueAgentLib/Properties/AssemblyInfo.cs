@@ -33,6 +33,11 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0-rc1")]
 
-[assembly: InternalsVisibleTo("Aqua.Lib.Tests")]
+[assembly: InternalsVisibleTo("Aqua.Lib.Tests, PublicKey=002400000480000094" +
+    "00000006020000002400005253413100040000010001007df44373ffc570ae5b0d36f1" +
+    "2965b32e0f85245d22e4ba8522210c150a960dbf7ba4058ac8e23948deea5e25718bdb" +
+    "ee6016b2da7cc797cb7aa80b966a3eb0a616770265258820acdd7132db93f801efd890" +
+    "af9818efbefac0ab218f5563c1de93805452b6d52f1e778f97b3a9f7af8d3d0feb57b4" +
+    "35c086fac01904009955b7")]
