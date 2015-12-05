@@ -7,6 +7,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureQueueAgentLib", "Azure
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureQueueAgentLib.Tests", "AzureQueueAgentLib.Tests\AzureQueueAgentLib.Tests.csproj", "{F395B07B-9EC3-4356-BF7D-7AF88E7F5D52}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{D4D2052B-D3D6-4395-8B9C-07BDB1276EC4}"
+	ProjectSection(SolutionItems) = preProject
+		..\tools\build.cmd = ..\tools\build.cmd
+		..\tools\pack.cmd = ..\tools\pack.cmd
+		..\tools\publish.cmd = ..\tools\publish.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
