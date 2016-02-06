@@ -1,5 +1,15 @@
 # aqua - Azure QUeue Agent
 
+## Getting Started
+Use the NuGet package `aqua.lib`
+```
+Install-Package aqua.lib
+```
+or for pre-releases
+```
+Install-Package aqua.lib -Pre
+```
+
 ## Summary
 aqua is a lightweight helper library to interact with Queues in Azure Storage Accounts in a produce/consumer like
 scenario where the messages in the queue define jobs to execute. aqua will be made available as a NuGet package once
