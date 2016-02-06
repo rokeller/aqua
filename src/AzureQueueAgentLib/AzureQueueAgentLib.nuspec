@@ -2,7 +2,7 @@
 <package >
     <metadata>
         <id>aqua.lib</id>
-        <version>1.0.0-rc1</version>
+        <version>1.0.0.0</version>
         <title>Azure Queue Agent</title>
         <authors>Roger Keller</authors>
         <language>en-US</language>
@@ -10,7 +10,7 @@
         <projectUrl>https://github.com/rokeller/aqua</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Producer and Consumer for Azure Queue-based Job Executors.</description>
-        <copyright>Copyright 2015</copyright>
+        <copyright>Copyright 2016</copyright>
         <tags>azure storage account queue message job task producer consumer</tags>
     </metadata>
 </package>
