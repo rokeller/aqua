@@ -16,6 +16,51 @@ namespace Aqua.Tests
                 () => factory.RegisterJobType(null));
             Assert.Throws(Is.TypeOf<ArgumentException>().And.Message.EqualTo("The jobType must implement the IJob interface."),
                 () => factory.RegisterJobType(typeof(JobFactoryTest)));
+
+            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("jobName"),
+                () => factory.RegisterJobType(null, null));
+            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("jobName"),
+                () => factory.RegisterJobType(String.Empty, null));
+            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("jobName"),
+                () => factory.RegisterJobType("     ", null));
+            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("jobType"),
+                () => factory.RegisterJobType("Blah", null));
+            Assert.Throws(Is.TypeOf<ArgumentException>().And.Message.EqualTo("The jobType must implement the IJob interface."),
+                () => factory.RegisterJobType("Blah", typeof(JobFactoryTest)));
+        }
+
+        [Test]
+        public void RegisterJobWithDifferentName()
+        {
+            factory.RegisterJobType("ThisIsAlsoHelloWorld", typeof(HelloWho));
+
+            JobDescriptor desc;
+            JToken token;
+            IJob job;
+            HelloWho helloJob;
+
+            // Create a descriptor and test it.
+            desc = factory.CreateDescriptor(new HelloWho() { Who = "RegisterJobWithDifferentName" });
+            Assert.That(desc.Job, Is.EqualTo("ThisIsAlsoHelloWorld"));
+            Assert.That(desc.Properties, Is.Not.Null.And.Count.EqualTo(1));
+            Assert.That(desc.Properties.TryGetValue("Who", out token), Is.True);
+            Assert.That(token, Is.TypeOf<JValue>().And.Property("Type").EqualTo(JTokenType.String));
+            Assert.That(token.ToObject<string>(), Is.EqualTo("RegisterJobWithDifferentName"));
+
+            // Use the descriptor to create a job, and test it.
+            job = factory.CreateJob(desc);
+            Assert.That(job, Is.Not.Null);
+            Assert.That(job, Is.InstanceOf<HelloWho>());
+            helloJob = (HelloWho)job;
+            Assert.That(helloJob.Who, Is.EqualTo("RegisterJobWithDifferentName"));
+
+            // Now use the descriptor with the original name to create a job, and test it.
+            desc.Job = "HelloWho";
+            job = factory.CreateJob(desc);
+            Assert.That(job, Is.Not.Null);
+            Assert.That(job, Is.InstanceOf<HelloWho>());
+            helloJob = (HelloWho)job;
+            Assert.That(helloJob.Who, Is.EqualTo("RegisterJobWithDifferentName"));
         }
 
         [Test]

@@ -1,6 +1,8 @@
 ﻿using Microsoft.WindowsAzure.Storage.Queue;
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Aqua.Tests
 {
@@ -25,7 +27,7 @@ namespace Aqua.Tests
         [Test]
         public void OneSingleTry_Empty()
         {
-            Assert.DoesNotThrow(consumer.One);
+            Assert.That(consumer.One(), Is.False);
         }
 
         [Test]
@@ -38,7 +40,7 @@ namespace Aqua.Tests
         [Test]
         public void OneWithRetry_Empty()
         {
-            Assert.DoesNotThrow(() => consumer.One(new SimpleRetryStrategy(5, TimeSpan.FromMilliseconds(1))));
+            Assert.That(consumer.One(new SimpleRetryStrategy(5, TimeSpan.FromMilliseconds(1))), Is.False);
         }
 
         [Test]
@@ -57,8 +59,75 @@ namespace Aqua.Tests
             CloudQueue queue = consumer.GetService<CloudQueue>();
             queue.AddMessage(new CloudQueueMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}"));
 
-            Assert.DoesNotThrow(consumer.One);
+            Assert.That(consumer.One(), Is.True);
             Assert.That(calledBack, Is.True);
+        }
+
+        [Test]
+        public void OneWithMessage_CancelledBeforeDequeue()
+        {
+            using (CancellationTokenSource cancelSource = new CancellationTokenSource())
+            {
+                cancelSource.Cancel();
+
+                bool calledBack = false;
+                Guid guid = Guid.NewGuid();
+                MockJob.Callback = id =>
+                {
+                    Assert.That(id, Is.EqualTo(guid));
+                    calledBack = true;
+
+                    return true;
+                };
+
+                CloudQueue queue = consumer.GetService<CloudQueue>();
+                queue.AddMessage(new CloudQueueMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}"));
+
+                Assert.That(consumer.One(new SimpleRetryStrategy(5, TimeSpan.FromMilliseconds(5)), cancelSource.Token),
+                    Is.False);
+                Assert.That(calledBack, Is.False);
+            }
+        }
+
+        [Test]
+        public void OneWithMessage_CancelledWhileHandling()
+        {
+            using (CancellationTokenSource cancelSource = new CancellationTokenSource())
+            {
+                bool calledBack = false;
+                Guid guid = Guid.NewGuid();
+                MockJob.Callback = id =>
+                {
+                    Assert.That(id, Is.EqualTo(guid));
+                    calledBack = true;
+                    cancelSource.Cancel();
+
+                    return true;
+                };
+
+                CloudQueue queue = consumer.GetService<CloudQueue>();
+                queue.AddMessage(new CloudQueueMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}"));
+
+                Assert.That(consumer.One(new SimpleRetryStrategy(5, TimeSpan.FromMilliseconds(5)), cancelSource.Token),
+                    Is.True);
+                Assert.That(calledBack, Is.True);
+            }
+        }
+
+        [Test]
+        public void OneEmpty_CancelledWhileWaiting()
+        {
+            using (CancellationTokenSource cancelSource = new CancellationTokenSource(100))
+            {
+                Stopwatch watch = Stopwatch.StartNew();
+
+                Assert.That(consumer.One(new SimpleRetryStrategy(5, TimeSpan.FromSeconds(2)), cancelSource.Token),
+                    Is.False);
+
+                watch.Stop();
+
+                Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100).And.LessThan(500));
+            }
         }
 
         [Test]
@@ -86,6 +155,9 @@ namespace Aqua.Tests
         public void TearDown()
         {
             MockJob.Callback = null;
+
+            CloudQueue queue = consumer.GetService<CloudQueue>();
+            queue.Clear();
         }
     }
 }

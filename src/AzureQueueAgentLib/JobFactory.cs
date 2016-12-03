@@ -47,9 +47,37 @@ namespace Aqua
                 throw new ArgumentException("The jobType must implement the IJob interface.");
             }
 
-            JobSpec spec = new JobSpec(jobType, jobType.Name);
-            nameToSpecMap.Add(jobType.Name, spec);
-            typeToSpecMap.Add(jobType, spec);
+            RegisterJobType(jobType.Name, jobType);
+        }
+
+        /// <summary>
+        /// Registers the given jobType.
+        /// </summary>
+        /// <param name="jobName">
+        /// The name to use when registering the job.
+        /// </param>
+        /// <param name="jobType">
+        /// The Type of to class to register which implements IJob.
+        /// </param>
+        public void RegisterJobType(string jobName, Type jobType)
+        {
+            if (String.IsNullOrWhiteSpace(jobName))
+            {
+                throw new ArgumentNullException("jobName");
+            }
+            else if (null == jobType)
+            {
+                throw new ArgumentNullException("jobType");
+            }
+            else if (jobType.GetInterface("IJob") != typeof(IJob))
+            {
+                throw new ArgumentException("The jobType must implement the IJob interface.");
+            }
+
+            JobSpec spec = new JobSpec(jobType, jobName);
+
+            nameToSpecMap[jobName] = spec;
+            typeToSpecMap[jobType] = spec;
         }
 
         /// <summary>

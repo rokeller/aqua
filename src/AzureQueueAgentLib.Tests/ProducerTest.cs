@@ -30,9 +30,9 @@ namespace Aqua.Tests
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("job"),
                 () => producer.One((IJob)null));
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("descriptor"),
-             () => producer.One((JobDescriptor)null));
+                () => producer.One((JobDescriptor)null));
             Assert.Throws(Is.TypeOf<ArgumentException>().And.Message.EqualTo("The JobDescriptor must have a non-null and non-blank Job property."),
-             () => producer.One(new JobDescriptor()));
+                () => producer.One(new JobDescriptor()));
         }
 
         [Test]

@@ -133,8 +133,7 @@ namespace Aqua.Tests
             context = JobExecutionContext.Dequeue(this);
 
             Assert.That(context.Empty, Is.False);
-            Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+            Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null, context.Execute);
 
             context.Dispose();
 

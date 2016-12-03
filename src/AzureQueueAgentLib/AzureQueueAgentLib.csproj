@@ -86,6 +86,7 @@
     <Compile Include="Extensions.cs" />
     <Compile Include="HelloWho.cs" />
     <Compile Include="IJob.cs" />
+    <Compile Include="InfiniteRepeaterRetryStrategy.cs" />
     <Compile Include="IRetryStrategy.cs" />
     <Compile Include="JobBase.cs" />
     <Compile Include="JobDescriptor.cs" />

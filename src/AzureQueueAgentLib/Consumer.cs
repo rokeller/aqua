@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage.Queue;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aqua
 {
@@ -88,9 +89,12 @@ namespace Aqua
         /// <summary>
         /// Consumes one message from the queue. Returns immediately if the queue has no messages.
         /// </summary>
-        public void One()
+        /// <returns>
+        /// True if a message was successfully consumed, false otherwise.
+        /// </returns>
+        public bool One()
         {
-            One(NoRetryStrategy.Default);
+            return One(NoRetryStrategy.Default);
         }
 
         /// <summary>
@@ -100,7 +104,28 @@ namespace Aqua
         /// <param name="dequeueStrategy">
         /// An instance of IRetryStrategy which defines how long and how often to query the queue for a single message.
         /// </param>
-        public void One(IRetryStrategy dequeueStrategy)
+        /// <returns>
+        /// True if a message was successfully consumed, false otherwise.
+        /// </returns>
+        public bool One(IRetryStrategy dequeueStrategy)
+        {
+            return One(dequeueStrategy, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Consumes one message from the queue, applying the given IRetryStrategy to wait for a message if the queue
+        /// is empty.
+        /// </summary>
+        /// <param name="dequeueStrategy">
+        /// An instance of IRetryStrategy which defines how long and how often to query the queue for a single message.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// A CancellationToken to use to check if the operation should be cancelled.
+        /// </param>
+        /// <returns>
+        /// True if a message was successfully consumed, false otherwise.
+        /// </returns>
+        public bool One(IRetryStrategy dequeueStrategy, CancellationToken cancellationToken)
         {
             if (null == dequeueStrategy)
             {
@@ -109,13 +134,21 @@ namespace Aqua
 
             for (int i = 1; ; i++)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+
                 using (JobExecutionContext context = JobExecutionContext.Dequeue(this))
                 {
                     if (context.Empty)
                     {
                         if (dequeueStrategy.ShouldRetry(i))
                         {
-                            Thread.Sleep(dequeueStrategy.GetWaitTime(i));
+                            Task.Delay(dequeueStrategy.GetWaitTime(i), cancellationToken)
+                                .ContinueWith(NoopTaskContinuation)
+                                .Wait();
+
                             continue;
                         }
 
@@ -123,9 +156,12 @@ namespace Aqua
                     }
 
                     context.Execute();
-                    break;
+
+                    return true;
                 }
             }
+
+            return false;
         }
 
         #endregion
@@ -157,6 +193,24 @@ namespace Aqua
             }
 
             return null;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// A simple method which does nothing.
+        /// </summary>
+        /// <param name="task">
+        /// A Task.
+        /// </param>
+        /// <remarks>
+        /// This method can be used as a continuation in order to avoid exceptions on error or cancel.
+        /// </remarks>
+        private static void NoopTaskContinuation(Task task)
+        {
+            // Intentionally left blank.
         }
 
         #endregion
