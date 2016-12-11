@@ -61,6 +61,18 @@ following strategies are available out of the box:
 time.
 - Add Jitter -- i.e. a strategy which adds jitter to the wait times of any other strategy (e.g. the exponential
 back-off) to introduce some variation for competing consumers.
+- Virtual Infinite Repeater -- i.e. repeat the last wait time from another strategy virtually forver.
+
+## Recent Changes
+
+* v1.0.2.0
+  * Fix `Consumer.One` to respect the return value from Job execution.
+  * Update `Producer.One` with overloads that take a parameter `initialVisibilityDelay` which can be used to make a
+    message visible only after some time. This can be very useful for job retry scenarios where handling a job should
+    only be retried after some time.
+* v1.0.1.0
+  * Update `Consumer` to support cancelling while waiting for a message, using a `CancellationToken`.
+  * Add the `InifiniteRepeaterRetryStrategy` which can be used to wait (based on another strategy) virtually forever.
 
 ## Stay tuned ...
 ... for more information and samples of how to use aqua.

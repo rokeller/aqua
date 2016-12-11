@@ -69,12 +69,27 @@ namespace Aqua
         /// </param>
         public void One(IJob job)
         {
+            One(job, null);
+        }
+
+        /// <summary>
+        /// Produces one message for the given job and adds it to the queue.
+        /// </summary>
+        /// <param name="job">
+        /// The IJob to produce.
+        /// </param>
+        /// <param name="initialVisibilityDelay">
+        /// A TimeSpan value specifying the interval of time from now during which the message will be invisible. If
+        /// null then the message will be visible immediately.
+        /// </param>
+        public void One(IJob job, TimeSpan? initialVisibilityDelay)
+        {
             if (null == job)
             {
                 throw new ArgumentNullException("job");
             }
 
-            One(factory.CreateDescriptor(job));
+            One(factory.CreateDescriptor(job), initialVisibilityDelay);
         }
 
         /// <summary>
@@ -84,6 +99,21 @@ namespace Aqua
         /// The JobDescriptor which describes the job to produce.
         /// </param>
         public void One(JobDescriptor descriptor)
+        {
+            One(descriptor, null);
+        }
+
+        /// <summary>
+        /// Produces one message for the given job descriptor and adds it to the queue.
+        /// </summary>
+        /// <param name="descriptor">
+        /// The JobDescriptor which describes the job to produce.
+        /// </param>
+        /// <param name="initialVisibilityDelay">
+        /// A TimeSpan value specifying the interval of time from now during which the message will be invisible. If
+        /// null then the message will be visible immediately.
+        /// </param>
+        public void One(JobDescriptor descriptor, TimeSpan? initialVisibilityDelay)
         {
             if (null == descriptor)
             {
@@ -97,7 +127,7 @@ namespace Aqua
             string body = JsonConvert.SerializeObject(descriptor);
             CloudQueueMessage msg = new CloudQueueMessage(body);
 
-            queue.AddMessage(msg);
+            queue.AddMessage(msg, /* timeToLive */ null, initialVisibilityDelay);
         }
 
         #endregion

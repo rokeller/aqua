@@ -3,6 +3,7 @@ using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
+using System.Threading;
 
 namespace Aqua.Tests
 {
@@ -49,6 +50,49 @@ namespace Aqua.Tests
             JobDescriptor descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
             Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
             Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-One"));
+
+            queue.DeleteMessage(msg);
+        }
+
+        [Test]
+        public void OneWithJobDescriptor()
+        {
+            CloudQueueMessage msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+
+            JobDescriptor descriptor = factory.CreateDescriptor(new HelloWho() { Who = "ProducerTest-OneWithJobDescriptor" });
+            producer.One(descriptor);
+
+            msg = queue.GetMessage();
+            Assert.That(msg, Is.Not.Null);
+
+            descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
+            Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
+            Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-OneWithJobDescriptor"));
+
+            queue.DeleteMessage(msg);
+        }
+
+        [Test]
+        public void OneWithInitialVisibilityDelay()
+        {
+            TimeSpan visibilityDelay = TimeSpan.FromSeconds(1);
+            CloudQueueMessage msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+
+            producer.One(new HelloWho() { Who = "ProducerTest-OneWithInitialVisibilityDelay" }, visibilityDelay);
+
+            msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+
+            Thread.Sleep(visibilityDelay);
+
+            msg = queue.GetMessage();
+            Assert.That(msg, Is.Not.Null);
+
+            JobDescriptor descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
+            Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
+            Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-OneWithInitialVisibilityDelay"));
 
             queue.DeleteMessage(msg);
         }

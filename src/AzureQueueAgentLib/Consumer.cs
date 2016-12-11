@@ -155,9 +155,7 @@ namespace Aqua
                         break;
                     }
 
-                    context.Execute();
-
-                    return true;
+                    return context.Execute();
                 }
             }
 

@@ -40,7 +40,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -61,7 +61,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -80,7 +80,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And.Message.EqualTo("Unsupported BadMessageHandling: 99"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -125,7 +125,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -133,7 +133,8 @@ namespace Aqua.Tests
             context = JobExecutionContext.Dequeue(this);
 
             Assert.That(context.Empty, Is.False);
-            Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null, context.Execute);
+            Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
+                () => context.Execute());
 
             context.Dispose();
 
@@ -142,7 +143,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And.Message.EqualTo("Unsupported BadMessageHandling: 999"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -152,7 +153,7 @@ namespace Aqua.Tests
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And
                 .Message.EqualTo("Unsupported BadMessageHandling: DecidePerMessage"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -163,7 +164,7 @@ namespace Aqua.Tests
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<InvalidOperationException>().And
                 .Message.EqualTo("The BadMessageHandlingProvider must not be null when 'DecidePerMessage' is used."),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -185,7 +186,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<UnknownJobException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -206,7 +207,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<UnknownJobException>().And.Property("MessageId").Not.Null,
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -225,7 +226,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And.Message.EqualTo("Unsupported UnknownJobHandling: 99"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -270,7 +271,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<UnknownJobException>().And.Property("JobName").EqualTo("DequeueUnknownJobAsk1"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -279,7 +280,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<UnknownJobException>().And.Property("JobName").EqualTo("DequeueUnknownJobAsk2"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -288,7 +289,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And.Message.EqualTo("Unsupported UnknownJobHandling: 999"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -298,7 +299,7 @@ namespace Aqua.Tests
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And
                 .Message.EqualTo("Unsupported UnknownJobHandling: DedicePerJob"),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -309,7 +310,7 @@ namespace Aqua.Tests
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<InvalidOperationException>().And
                 .Message.EqualTo("The UnknownJobHandlingProvider must not be null when 'DedicePerJob' is used."),
-                context.Execute);
+                () => context.Execute());
 
             context.Dispose();
 
@@ -336,7 +337,7 @@ namespace Aqua.Tests
             };
 
             Assert.That(context.Empty, Is.False);
-            Assert.DoesNotThrow(context.Execute);
+            Assert.That(context.Execute(), Is.True);
 
             context.Dispose();
 
@@ -349,7 +350,8 @@ namespace Aqua.Tests
         public void ExecuteFailed()
         {
             Guid guid = Guid.NewGuid();
-            AddMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}");
+            string msgBody = "{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}";
+            AddMessage(msgBody);
             context = JobExecutionContext.Dequeue(this);
 
             MockJob.Callback = id =>
@@ -360,14 +362,14 @@ namespace Aqua.Tests
             };
 
             Assert.That(context.Empty, Is.False);
-            Assert.DoesNotThrow(context.Execute);
+            Assert.That(context.Execute(), Is.False);
 
             context.Dispose();
 
-            // Verify that the message was deleted.
+            // Verify that the message was not deleted.
             CloudQueueMessage msg = queue.GetMessage();
             Assert.That(msg, Is.Not.Null);
-            Assert.That(msg.AsString, Is.EqualTo("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}"));
+            Assert.That(msg.AsString, Is.EqualTo(msgBody));
         }
 
         [Test]
@@ -385,7 +387,8 @@ namespace Aqua.Tests
             };
 
             Assert.That(context.Empty, Is.False);
-            Assert.Throws(Is.TypeOf<InvalidOperationException>().And.Message.EqualTo(guid.ToString()), context.Execute);
+            Assert.Throws(Is.TypeOf<InvalidOperationException>().And.Message.EqualTo(guid.ToString()),
+                () => context.Execute());
 
             context.Dispose();
 

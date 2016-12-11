@@ -134,7 +134,11 @@ namespace Aqua
         /// <summary>
         /// Executes the job.
         /// </summary>
-        internal void Execute()
+        /// <returns>
+        /// True if the message from the context was correctly handled and dequeued, or false if the message was
+        /// enqueued again.
+        /// </returns>
+        internal bool Execute()
         {
             Debug.Assert(!Empty, "Cannot execute an empty message.");
 
@@ -143,7 +147,7 @@ namespace Aqua
             try
             {
                 RefreshVisibilityTimeout(null);
-                shouldDeleteMessage = job.Execute();
+                return shouldDeleteMessage = job.Execute();
             }
             catch (Exception)
             {
