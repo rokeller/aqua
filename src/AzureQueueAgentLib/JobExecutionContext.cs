@@ -273,9 +273,7 @@ namespace Aqua
                     return;
                 }
 
-                Console.WriteLine("Extend visibility. Old = {0}, now = {1}", message.NextVisibleTime, DateTime.UtcNow);
                 queue.UpdateMessage(message, VisibilityTimeout, MessageUpdateFields.Visibility);
-                Console.WriteLine("Extended visibility. New = {0}, now = {1}", message.NextVisibleTime, DateTime.UtcNow);
             }
 
             Task.Delay(VisibilityTimeoutUpdatePeriod, cancellationTokenSource.Token)
