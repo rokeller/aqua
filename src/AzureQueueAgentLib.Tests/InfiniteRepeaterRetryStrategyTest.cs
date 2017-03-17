@@ -57,5 +57,24 @@ namespace Aqua.Tests
             Assert.That(strategy.GetWaitTime(9999999), Is.EqualTo(inifiteWaitTime), "Attempt 9999999");
             Assert.That(strategy.GetWaitTime(int.MaxValue), Is.EqualTo(inifiteWaitTime), "Attempt MaxValue");
         }
+
+        [Test]
+        public void WaitTimes_SkippingFirstFew()
+        {
+            WaitTimes_SkippingFirstFew(5);
+            WaitTimes_SkippingFirstFew(60);
+            WaitTimes_SkippingFirstFew(700);
+            WaitTimes_SkippingFirstFew(8000);
+            WaitTimes_SkippingFirstFew(90000);
+        }
+
+        private void WaitTimes_SkippingFirstFew(int skip)
+        {
+            TimeSpan inifiteWaitTime = TimeSpan.FromSeconds(3);
+            LinearBackoffRetryStrategy baseStrategy = new LinearBackoffRetryStrategy(3, TimeSpan.FromSeconds(1));
+            InfiniteRepeaterRetryStrategy strategy = new InfiniteRepeaterRetryStrategy(baseStrategy);
+
+            Assert.That(strategy.GetWaitTime(skip), Is.EqualTo(inifiteWaitTime), "Attempt " + skip);
+        }
     }
 }

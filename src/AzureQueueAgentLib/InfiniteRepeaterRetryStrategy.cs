@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Aqua
 {
@@ -18,7 +19,7 @@ namespace Aqua
         /// <summary>
         /// The last remembered wait time.
         /// </summary>
-        private TimeSpan lastWaitTime;
+        private TimeSpan? lastWaitTime;
 
         #endregion
 
@@ -77,7 +78,22 @@ namespace Aqua
                 lastWaitTime = inner.GetWaitTime(attempt);
             }
 
-            return lastWaitTime;
+            if (!lastWaitTime.HasValue)
+            {
+                // We don't know the last wait time used by the inner strategy yet, so let's go and discover it.
+                int lastSupportedAttempt = 1;
+
+                while (inner.ShouldRetry(lastSupportedAttempt + 1))
+                {
+                    lastSupportedAttempt++;
+                }
+
+                lastWaitTime = inner.GetWaitTime(lastSupportedAttempt);
+            }
+
+            Debug.Assert(lastWaitTime.HasValue, "The last wait time must have a value.");
+
+            return lastWaitTime.Value;
         }
 
         #endregion
