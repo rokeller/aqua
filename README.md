@@ -65,6 +65,12 @@ back-off) to introduce some variation for competing consumers.
 
 ## Recent Changes
 
+* v1.0.3.0
+  * Fix a bug in the `InfiniteRepeaterRetryStrategy` which would always return 00:00:00 as the wait time if asked right
+    away for the wait time of an attempt not supported by the inner strategy. I.e. if an inner strategy was used to
+    return a wait time of 00:00:10 with their last try #5, and the `InfiniteRepeaterRetryStrategy` was asked right away
+    for the wait time of try #6 (instead of asking for 1-5 first), 00:00:00 was returned.
+  * Removed some leftover (unused) `Console.WriteLine` calls.
 * v1.0.2.0
   * Fix `Consumer.One` to respect the return value from Job execution.
   * Update `Producer.One` with overloads that take a parameter `initialVisibilityDelay` which can be used to make a
