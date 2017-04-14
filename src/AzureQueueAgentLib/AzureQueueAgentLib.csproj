@@ -92,6 +92,7 @@
     <Compile Include="JobDescriptor.cs" />
     <Compile Include="JobExecutionContext.cs" />
     <Compile Include="JobFactory.cs" />
+    <Compile Include="JobPerfData.cs" />
     <Compile Include="LinearBackoffRetryStrategy.cs" />
     <Compile Include="MessageFormatException.cs" />
     <Compile Include="NoRetryStrategy.cs" />

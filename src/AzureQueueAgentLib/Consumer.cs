@@ -1,5 +1,8 @@
 ﻿using Microsoft.WindowsAzure.Storage.Queue;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,6 +34,11 @@ namespace Aqua
         /// The ConsumerSettings that define the behavior of the consumer.
         /// </summary>
         private readonly ConsumerSettings consumerSettings;
+
+        /// <summary>
+        /// The Dictionary which stores per-job performance data.
+        /// </summary>
+        private readonly Dictionary<string, JobPerfData> perfData = new Dictionary<string, JobPerfData>(StringComparer.Ordinal);
 
         #endregion
 
@@ -155,11 +163,25 @@ namespace Aqua
                         break;
                     }
 
-                    return context.Execute();
+                    using (new JobPerfContext(context, GetPerfData(context)))
+                    {
+                        return context.Execute();
+                    }
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Gets a snapshot of the collected perf data per job.
+        /// </summary>
+        /// <returns>
+        /// An IReadOnlyDictionary of string and JobPerfData.
+        /// </returns>
+        public IReadOnlyDictionary<string, JobPerfData> GetPerfSnapshot()
+        {
+            return new ReadOnlyDictionary<string, JobPerfData>(perfData);
         }
 
         #endregion
@@ -209,6 +231,90 @@ namespace Aqua
         private static void NoopTaskContinuation(Task task)
         {
             // Intentionally left blank.
+        }
+
+        /// <summary>
+        /// Gets the JobPerfData object for the given JobExecutionContext.
+        /// </summary>
+        /// <param name="context">
+        /// The JobExecutionContext to get the JobPerfData for.
+        /// </param>
+        /// <returns>
+        /// An instance of JobPerfData.
+        /// </returns>
+        private JobPerfData GetPerfData(JobExecutionContext context)
+        {
+            Debug.Assert(null != context, "The job execution context must not be null.");
+
+            JobPerfData data;
+
+            if (!perfData.TryGetValue(context.JobName, out data))
+            {
+                data = new JobPerfData(context.JobName);
+                perfData.Add(data.JobName, data);
+            }
+
+            return data;
+        }
+
+        #endregion
+
+        #region Private Classes
+
+        /// <summary>
+        /// Tracks/updates JobPerfData objects.
+        /// </summary>
+        private sealed class JobPerfContext : IDisposable
+        {
+            /// <summary>
+            /// The JobExecutionContext this instance is for.
+            /// </summary>
+            private readonly JobExecutionContext jobContext;
+
+            /// <summary>
+            /// The JobPerfData object to update.
+            /// </summary>
+            private readonly JobPerfData perfData;
+
+            /// <summary>
+            /// The Stopwatch to use for measuring the duration of job execution.
+            /// </summary>
+            private readonly Stopwatch watch = Stopwatch.StartNew();
+
+            /// <summary>
+            /// Initializes a new instance of JobPerfContext.
+            /// </summary>
+            /// <param name="jobContext">
+            /// The JobExecutionContext this instance is for.
+            /// </param>
+            /// <param name="perfData">
+            /// The JobPerfData to update with data collected with this instance.
+            /// </param>
+            public JobPerfContext(JobExecutionContext jobContext, JobPerfData perfData)
+            {
+                Debug.Assert(null != jobContext, "The job execution context must not be null.");
+                Debug.Assert(null != perfData, "The job perf data must not be null.");
+
+                this.jobContext = jobContext;
+                this.perfData = perfData;
+            }
+
+            /// <summary>
+            /// Disposes this instance.
+            /// </summary>
+            public void Dispose()
+            {
+                watch.Stop();
+
+                if (jobContext.WasSuccessful)
+                {
+                    perfData.UpdateSuccess(watch.ElapsedMilliseconds);
+                }
+                else
+                {
+                    perfData.UpdateFailure(watch.ElapsedMilliseconds);
+                }
+            }
         }
 
         #endregion

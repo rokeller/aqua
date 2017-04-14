@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage.Queue;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
@@ -74,6 +75,7 @@ namespace Aqua.Tests
                 Guid guid = Guid.NewGuid();
                 MockJob.Callback = id =>
                 {
+                    Assert.Fail("The MockJob must not be executed.");
                     Assert.That(id, Is.EqualTo(guid));
                     calledBack = true;
 
@@ -128,6 +130,38 @@ namespace Aqua.Tests
 
                 Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100).And.LessThan(500));
             }
+        }
+
+        [Test]
+        public void One_ExecutionFailed()
+        {
+            bool calledBack = false;
+            Guid guid = Guid.NewGuid();
+            MockJob.Callback = id =>
+            {
+                Assert.That(id, Is.EqualTo(guid));
+                calledBack = true;
+
+                return false;
+            };
+
+            CloudQueue queue = consumer.GetService<CloudQueue>();
+            queue.AddMessage(new CloudQueueMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}"));
+
+            Assert.That(consumer.One(), Is.False);
+            Assert.That(calledBack, Is.True);
+
+            IReadOnlyDictionary<string, JobPerfData> perfData = consumer.GetPerfSnapshot();
+            Assert.That(perfData, Is.Not.Null);
+            Assert.That(perfData.Count, Is.EqualTo(1));
+
+            JobPerfData data;
+            Assert.That(perfData.TryGetValue("MockJob", out data), Is.True);
+            Assert.That(data.JobName, Is.EqualTo("MockJob"));
+            Assert.That(data.SuccessCount, Is.EqualTo(0));
+            Assert.That(data.FailureCount, Is.EqualTo(1));
+            Assert.That(data.SuccessDuration, Is.EqualTo(0));
+            Assert.That(data.FailureDuration, Is.GreaterThanOrEqualTo(0));
         }
 
         [Test]

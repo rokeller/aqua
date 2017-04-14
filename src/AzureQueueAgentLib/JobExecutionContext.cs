@@ -68,6 +68,11 @@ namespace Aqua
         private CloudQueueMessage message;
 
         /// <summary>
+        /// The lazy-loaded JobDescriptor describing the job, if any.
+        /// </summary>
+        private readonly Lazy<JobDescriptor> jobDescriptor;
+
+        /// <summary>
         /// The lazy-loaded IJob that is tracked by this context.
         /// </summary>
         private readonly Lazy<IJob> job;
@@ -81,6 +86,11 @@ namespace Aqua
         /// A flag which indicates whether or not the dequeued message should be deleted when disposing this context.
         /// </summary>
         private bool shouldDeleteMessage = false;
+
+        /// <summary>
+        /// The visibility timeout to use when requeueing a message.
+        /// </summary>
+        private TimeSpan requeueVisibilityTimeout = TimeSpan.Zero;
 
         #endregion
 
@@ -106,6 +116,7 @@ namespace Aqua
             consumerSettings = serviceProvider.GetService<ConsumerSettings>();
             Debug.Assert(null != consumerSettings, "The consumer settings must not be null.");
 
+            jobDescriptor = new Lazy<JobDescriptor>(GetJobDescriptor);
             job = new Lazy<IJob>(GetJob);
         }
 
@@ -132,6 +143,16 @@ namespace Aqua
         internal bool Empty { get { return null == message; } }
 
         /// <summary>
+        /// Gets the name of the job to be executed with this instance.
+        /// </summary>
+        internal string JobName { get { return jobDescriptor.Value.Job; } }
+
+        /// <summary>
+        /// Gets a flag which indicates whether or not job execution was successful.
+        /// </summary>
+        internal bool WasSuccessful { get; private set; }
+
+        /// <summary>
         /// Executes the job.
         /// </summary>
         /// <returns>
@@ -147,11 +168,13 @@ namespace Aqua
             try
             {
                 RefreshVisibilityTimeout(null);
-                return shouldDeleteMessage = job.Execute();
+
+                return shouldDeleteMessage = WasSuccessful = job.Execute();
             }
             catch (Exception)
             {
                 // TODO: Log the exception
+                WasSuccessful = false;
                 shouldDeleteMessage = false;
                 throw;
             }
@@ -191,18 +214,12 @@ namespace Aqua
         }
 
         /// <summary>
-        /// Gets the IJob for the current message.
+        /// Gets the JobDescriptor from the message.
         /// </summary>
         /// <returns>
-        /// An instance of IJob.
+        /// An instance of JobDescriptor.
         /// </returns>
-        /// <exception cref="MessageFormatException">
-        /// A MessageFormatException is thrown if the message is badly formatted.
-        /// </exception>
-        /// <exception cref="UnknownJobException">
-        /// An UnknownJobException is thrown if the job from the message is not registered in the current JobFactory.
-        /// </exception>
-        private IJob GetJob()
+        private JobDescriptor GetJobDescriptor()
         {
             string body = GetMessageBody();
             JobDescriptor jobDesc;
@@ -218,16 +235,33 @@ namespace Aqua
                 throw new MessageFormatException(message.Id, ex);
             }
 
+            return jobDesc;
+        }
+
+        /// <summary>
+        /// Gets the IJob for the current message.
+        /// </summary>
+        /// <returns>
+        /// An instance of IJob.
+        /// </returns>
+        /// <exception cref="MessageFormatException">
+        /// A MessageFormatException is thrown if the message is badly formatted.
+        /// </exception>
+        /// <exception cref="UnknownJobException">
+        /// An UnknownJobException is thrown if the job from the message is not registered in the current JobFactory.
+        /// </exception>
+        private IJob GetJob()
+        {
             try
             {
-                IJob job = factory.CreateJob(jobDesc);
+                IJob job = factory.CreateJob(jobDescriptor.Value);
                 Debug.Assert(null != job, "The job must not be null.");
 
                 return job;
             }
             catch (UnknownJobException)
             {
-                ApplyUnknownJobHandling(jobDesc);
+                ApplyUnknownJobHandling(jobDescriptor.Value);
                 throw;
             }
         }
@@ -288,6 +322,7 @@ namespace Aqua
             switch (consumerSettings.BadMessageHandling)
             {
                 case BadMessageHandling.Requeue:
+                case BadMessageHandling.RequeueThenDeleteAfterThreshold:
                 case BadMessageHandling.Delete:
                     ApplyBadMessageHandling(consumerSettings.BadMessageHandling);
                     break;
@@ -319,6 +354,13 @@ namespace Aqua
                 case BadMessageHandling.Requeue:
                     break;
 
+                case BadMessageHandling.RequeueThenDeleteAfterThreshold:
+                    if (message.DequeueCount >= consumerSettings.BadMessageRequeueThreshold)
+                    {
+                        shouldDeleteMessage = true;
+                    }
+                    break;
+
                 case BadMessageHandling.Delete:
                     shouldDeleteMessage = true;
                     break;
@@ -327,6 +369,8 @@ namespace Aqua
                 default:
                     throw new NotSupportedException("Unsupported BadMessageHandling: " + handling);
             }
+
+            requeueVisibilityTimeout = consumerSettings.BadMessageRequeueTimeout;
         }
 
         /// <summary>
@@ -342,6 +386,7 @@ namespace Aqua
             switch (consumerSettings.UnknownJobHandling)
             {
                 case UnknownJobHandling.Requeue:
+                case UnknownJobHandling.RequeueThenDeleteAfterThreshold:
                 case UnknownJobHandling.Delete:
                     ApplyUnknownJobHandling(consumerSettings.UnknownJobHandling);
                     break;
@@ -373,6 +418,13 @@ namespace Aqua
                 case UnknownJobHandling.Requeue:
                     break;
 
+                case UnknownJobHandling.RequeueThenDeleteAfterThreshold:
+                    if (message.DequeueCount >= consumerSettings.UnknownJobRequeueThreshold)
+                    {
+                        shouldDeleteMessage = true;
+                    }
+                    break;
+
                 case UnknownJobHandling.Delete:
                     shouldDeleteMessage = true;
                     break;
@@ -381,6 +433,8 @@ namespace Aqua
                 default:
                     throw new NotSupportedException("Unsupported UnknownJobHandling: " + handling);
             }
+
+            requeueVisibilityTimeout = consumerSettings.UnknownJobRequeueTimeout;
         }
 
         /// <summary>
@@ -420,7 +474,8 @@ namespace Aqua
                 }
                 else
                 {
-                    queue.UpdateMessage(message, TimeSpan.Zero, MessageUpdateFields.Visibility);
+                    // We should keep the message, so update just its visibility timeout.
+                    queue.UpdateMessage(message, requeueVisibilityTimeout, MessageUpdateFields.Visibility);
                 }
             }
 

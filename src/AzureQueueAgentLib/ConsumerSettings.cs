@@ -22,6 +22,17 @@ namespace Aqua
         public Func<CloudQueueMessage, BadMessageHandling> BadMessageHandlingProvider { get; set; }
 
         /// <summary>
+        /// Gets or sets the threshold for number of dequeues of a message before a bad message gets deleted from the
+        /// queue.
+        /// </summary>
+        public int BadMessageRequeueThreshold { get; set; }
+
+        /// <summary>
+        /// Gets or sets the visibility timeout to use when re-queueing bad messages.
+        /// </summary>
+        public TimeSpan BadMessageRequeueTimeout { get; set; }
+
+        /// <summary>
         /// Gets or sets a UnknownJobHandling value which defines the behavior for unknown jobs consumed from the queue.
         /// Defaults to 'Requeue'.
         /// </summary>
@@ -35,6 +46,17 @@ namespace Aqua
         public Func<JobDescriptor, UnknownJobHandling> UnknownJobHandlingProvider { get; set; }
 
         /// <summary>
+        /// Gets or sets the threshold for number of dequeues of a message before a message with an unknown job gets
+        /// deleted from the queue.
+        /// </summary>
+        public int UnknownJobRequeueThreshold { get; set; }
+
+        /// <summary>
+        /// Gets or sets the visibility timeout to use when re-queueing messages with unknown jobs.
+        /// </summary>
+        public TimeSpan UnknownJobRequeueTimeout { get; set; }
+
+        /// <summary>
         /// Creates a new instance of ConsumerSettings using the default values.
         /// </summary>
         /// <returns>
@@ -45,7 +67,11 @@ namespace Aqua
             return new ConsumerSettings()
             {
                 BadMessageHandling = BadMessageHandling.Requeue,
+                BadMessageRequeueThreshold = Int32.MaxValue,
+                BadMessageRequeueTimeout = TimeSpan.Zero,
                 UnknownJobHandling = UnknownJobHandling.Requeue,
+                UnknownJobRequeueThreshold = Int32.MaxValue,
+                UnknownJobRequeueTimeout = TimeSpan.Zero,
             };
         }
     }
@@ -59,6 +85,11 @@ namespace Aqua
         /// Requeue the bad message in the Azure Queue. The message still counts as consumed.
         /// </summary>
         Requeue,
+
+        /// <summary>
+        /// Requeue the bad message in the Azure Queue unless the dequeue count has reached a certain threshold.
+        /// </summary>
+        RequeueThenDeleteAfterThreshold,
 
         /// <summary>
         /// Delete the bad message from the Azure Queue. The message still counts as consumed.
@@ -80,6 +111,12 @@ namespace Aqua
         /// Requeue the message that contains the unknown job in the Azure Queue. The message still counts as consumed.
         /// </summary>
         Requeue,
+
+        /// <summary>
+        /// Requeue the message that contains the unknown job in the Azure Queue unless the dequeue count has reached a
+        /// certain threshold.
+        /// </summary>
+        RequeueThenDeleteAfterThreshold,
 
         /// <summary>
         /// Delete the message that contains the unknown job from the Azure Queue. The message still counts as consumed.

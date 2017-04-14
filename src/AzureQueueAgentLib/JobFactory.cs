@@ -19,7 +19,7 @@ namespace Aqua
         /// <summary>
         /// The Dictionary which tracks the registered job specs by their names.
         /// </summary>
-        private readonly Dictionary<string, JobSpec> nameToSpecMap = new Dictionary<string, JobSpec>();
+        private readonly Dictionary<string, JobSpec> nameToSpecMap = new Dictionary<string, JobSpec>(StringComparer.Ordinal);
 
         /// <summary>
         /// The Dictionary which tracks the registered job specs by their types.

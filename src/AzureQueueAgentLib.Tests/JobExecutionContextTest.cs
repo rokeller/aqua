@@ -35,6 +35,8 @@ namespace Aqua.Tests
         [Test]
         public void DequeueBadMessageRequeue()
         {
+            consumerSettings.BadMessageHandling = BadMessageHandling.Requeue;
+
             AddMessage("DequeueBadMessageRequeue");
             context = JobExecutionContext.Dequeue(this);
 
@@ -49,6 +51,39 @@ namespace Aqua.Tests
             Assert.That(msg, Is.Not.Null);
             Assert.That(msg.AsString, Is.EqualTo("DequeueBadMessageRequeue"));
             Assert.That(msg.DequeueCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void DequeueBadMessageRequeueThenDeleteWithThreshold()
+        {
+            const int NumIterations = 3;
+            consumerSettings.BadMessageHandling = BadMessageHandling.RequeueThenDeleteAfterThreshold;
+            consumerSettings.BadMessageRequeueThreshold = NumIterations;
+
+            AddMessage("DequeueBadMessageRequeueThenDeleteWithThreshold");
+            CloudQueueMessage msg;
+
+            for (int i = 0; i < NumIterations; i++)
+            {
+                // Verify that the message is currently queued.
+                msg = queue.PeekMessage();
+                Assert.That(msg, Is.Not.Null, "Iteration: {0}", i);
+                Assert.That(msg.AsString, Is.EqualTo("DequeueBadMessageRequeueThenDeleteWithThreshold"), "Iteration: {0}", i);
+                Assert.That(msg.DequeueCount, Is.EqualTo(i), "Iteration: {0}", i);
+
+                // Dequeue, and try to handle.
+                context = JobExecutionContext.Dequeue(this);
+
+                Assert.That(context.Empty, Is.False, "Iteration: {0}", i);
+                Assert.Throws(Is.TypeOf<MessageFormatException>().And.Property("MessageId").Not.Null,
+                    () => context.Execute(), "Iteration: {0}", i);
+
+                context.Dispose();
+            }
+
+            // Verify that the message NOT queued again.
+            msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
         }
 
         [Test]
@@ -198,6 +233,39 @@ namespace Aqua.Tests
         }
 
         [Test]
+        public void DequeueUnknownJobRequeueThenDeleteWithThreshold()
+        {
+            const int NumIterations = 13;
+            consumerSettings.UnknownJobHandling = UnknownJobHandling.RequeueThenDeleteAfterThreshold;
+            consumerSettings.UnknownJobRequeueThreshold = NumIterations;
+
+            AddMessage("{\"Job\":\"DequeueUnknownJobRequeueThenDeleteWithThreshold\"}");
+            CloudQueueMessage msg;
+
+            for (int i = 0; i < NumIterations; i++)
+            {
+                // Verify that the message is currently queued.
+                msg = queue.PeekMessage();
+                Assert.That(msg, Is.Not.Null, "Iteration: {0}", i);
+                Assert.That(msg.AsString, Is.EqualTo("{\"Job\":\"DequeueUnknownJobRequeueThenDeleteWithThreshold\"}"), "Iteration: {0}", i);
+                Assert.That(msg.DequeueCount, Is.EqualTo(i), "Iteration: {0}", i);
+
+                // Dequeue, and try to handle.
+                context = JobExecutionContext.Dequeue(this);
+
+                Assert.That(context.Empty, Is.False, "Iteration: {0}", i);
+                Assert.Throws(Is.TypeOf<UnknownJobException>().And.Property("MessageId").Not.Null,
+                () => context.Execute(), "Iteration: {0}", i);
+
+                context.Dispose();
+            }
+
+            // Verify that the message NOT queued again.
+            msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+        }
+
+        [Test]
         public void DequeueUnknownJobDelete()
         {
             consumerSettings.UnknownJobHandling = UnknownJobHandling.Delete;
@@ -338,6 +406,8 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.That(context.Execute(), Is.True);
+            Assert.That(context.JobName, Is.EqualTo("MockJob"));
+            Assert.That(context.WasSuccessful, Is.True);
 
             context.Dispose();
 
@@ -363,6 +433,8 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.That(context.Execute(), Is.False);
+            Assert.That(context.JobName, Is.EqualTo("MockJob"));
+            Assert.That(context.WasSuccessful, Is.False);
 
             context.Dispose();
 
