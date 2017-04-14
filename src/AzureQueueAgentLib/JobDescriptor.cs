@@ -22,5 +22,10 @@ namespace Aqua
         /// Gets or sets the properties of the job.
         /// </summary>
         public Dictionary<string, JToken> Properties { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Dequeue Count of the underlying message that contains the job.
+        /// </summary>
+        public int DequeueCount { get; internal set; }
     }
 }

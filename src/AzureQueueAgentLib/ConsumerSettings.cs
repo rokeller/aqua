@@ -8,9 +8,11 @@ namespace Aqua
     /// </summary>
     public class ConsumerSettings
     {
+        #region Bad Message Behavior
+
         /// <summary>
         /// Gets or sets a BadMessageHandling value which defines the behavior for bad messages consumed from the queue.
-        /// Defaults to 'Requeue'.
+        /// Defaults to 'Requeue' when using CreateDefault().
         /// </summary>
         public BadMessageHandling BadMessageHandling { get; set; }
 
@@ -32,9 +34,13 @@ namespace Aqua
         /// </summary>
         public TimeSpan BadMessageRequeueTimeout { get; set; }
 
+        #endregion
+
+        #region Unknown Job Behavior
+
         /// <summary>
         /// Gets or sets a UnknownJobHandling value which defines the behavior for unknown jobs consumed from the queue.
-        /// Defaults to 'Requeue'.
+        /// Defaults to 'Requeue' when using CreateDefault().
         /// </summary>
         public UnknownJobHandling UnknownJobHandling { get; set; }
 
@@ -56,6 +62,36 @@ namespace Aqua
         /// </summary>
         public TimeSpan UnknownJobRequeueTimeout { get; set; }
 
+        #endregion
+
+        #region Failed Job Behavior
+
+        /// <summary>
+        /// Gets or sets a FailedJobHandling value which defines the behavior for failed jobs consumed from the queue.
+        /// Defaults to 'Requeue' when using CreateDefault().
+        /// </summary>
+        public FailedJobHandling FailedJobHandling { get; set; }
+
+        /// <summary>
+        /// Gets or sets a function which is used to decide at runtime the behavior for failed jobs consumed from the
+        /// queue. It is ignored unless FailedJobHandling is set to 'DecidePerJob', and it is required if 'DecidePerJob'
+        /// is used.
+        /// </summary>
+        public Func<IJob, JobDescriptor, Exception, FailedJobHandling> FailedJobHandlingProvider { get; set; }
+
+        /// <summary>
+        /// Gets or sets the threshold for number of dequeues of a message before a message with a failed job gets
+        /// deleted from the queue.
+        /// </summary>
+        public int FailedJobRequeueThreshold { get; set; }
+
+        /// <summary>
+        /// Gets or sets the visibility timeout to use when re-queueing messages with failed jobs.
+        /// </summary>
+        public TimeSpan FailedJobRequeueTimeout { get; set; }
+
+        #endregion
+
         /// <summary>
         /// Creates a new instance of ConsumerSettings using the default values.
         /// </summary>
@@ -67,11 +103,19 @@ namespace Aqua
             return new ConsumerSettings()
             {
                 BadMessageHandling = BadMessageHandling.Requeue,
+                BadMessageHandlingProvider = null,
                 BadMessageRequeueThreshold = Int32.MaxValue,
                 BadMessageRequeueTimeout = TimeSpan.Zero,
+
                 UnknownJobHandling = UnknownJobHandling.Requeue,
+                UnknownJobHandlingProvider = null,
                 UnknownJobRequeueThreshold = Int32.MaxValue,
                 UnknownJobRequeueTimeout = TimeSpan.Zero,
+
+                FailedJobHandling = FailedJobHandling.Requeue,
+                FailedJobHandlingProvider = null,
+                FailedJobRequeueThreshold = Int32.MaxValue,
+                FailedJobRequeueTimeout = TimeSpan.Zero,
             };
         }
     }
@@ -125,6 +169,33 @@ namespace Aqua
 
         /// <summary>
         /// Decide per job, using the UnknownJobHandlingProvider from the settings.
+        /// </summary>
+        DedicePerJob,
+    }
+
+    /// <summary>
+    /// Defines the available behaviors to handle failed jobs.
+    /// </summary>
+    public enum FailedJobHandling
+    {
+        /// <summary>
+        /// Requeue the message that contains the failed job in the Azure Queue.
+        /// </summary>
+        Requeue,
+
+        /// <summary>
+        /// Requeue the message that contains the failed job in the Azure Queue unless the dequeue count has reached a
+        /// certain threshold.
+        /// </summary>
+        RequeueThenDeleteAfterThreshold,
+
+        /// <summary>
+        /// Delete the message that contains the failed job from the Azure Queue.
+        /// </summary>
+        Delete,
+
+        /// <summary>
+        /// Decide per job, using the FailedJobHandlingProvider from the settings.
         /// </summary>
         DedicePerJob,
     }

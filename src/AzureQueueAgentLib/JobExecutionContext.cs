@@ -167,17 +167,29 @@ namespace Aqua
 
             try
             {
-                RefreshVisibilityTimeout(null);
-
-                return shouldDeleteMessage = WasSuccessful = job.Execute();
+                RefreshVisibilityTimeout(task: null);
+                WasSuccessful = job.Execute();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // TODO: Log the exception
                 WasSuccessful = false;
-                shouldDeleteMessage = false;
+                ApplyFailedJobHandling(job, jobDescriptor.Value, ex);
                 throw;
             }
+
+            // If execution was not successful, apply the 'FailedJobHandling' behavior now.
+            if (!WasSuccessful)
+            {
+                ApplyFailedJobHandling(job, jobDescriptor.Value, null);
+            }
+            else
+            {
+                // Since the job was handled successfully, we want to delete the message in any case.
+                shouldDeleteMessage = true;
+            }
+
+            return WasSuccessful;
         }
 
         /// <summary>
@@ -228,6 +240,7 @@ namespace Aqua
             {
                 jobDesc = JsonConvert.DeserializeObject<JobDescriptor>(body, jsonSettings);
                 jobDesc.QueueMessageId = message.Id;
+                jobDesc.DequeueCount = message.DequeueCount;
             }
             catch (Exception ex)
             {
@@ -314,6 +327,8 @@ namespace Aqua
                 .ContinueWith(RefreshVisibilityTimeout, cancellationTokenSource.Token);
         }
 
+        #region Bad Message Handling
+
         /// <summary>
         /// Applies the BadMessageHandling behavior from the current ConsumerSettings.
         /// </summary>
@@ -352,13 +367,11 @@ namespace Aqua
             switch (handling)
             {
                 case BadMessageHandling.Requeue:
+                    shouldDeleteMessage = false;
                     break;
 
                 case BadMessageHandling.RequeueThenDeleteAfterThreshold:
-                    if (message.DequeueCount >= consumerSettings.BadMessageRequeueThreshold)
-                    {
-                        shouldDeleteMessage = true;
-                    }
+                    shouldDeleteMessage = (message.DequeueCount >= consumerSettings.BadMessageRequeueThreshold);
                     break;
 
                 case BadMessageHandling.Delete:
@@ -372,6 +385,10 @@ namespace Aqua
 
             requeueVisibilityTimeout = consumerSettings.BadMessageRequeueTimeout;
         }
+
+        #endregion
+
+        #region Unknown Job Handling
 
         /// <summary>
         /// Applies the UnknownJobHandling behavior from the current ConsumerSettings.
@@ -416,13 +433,11 @@ namespace Aqua
             switch (handling)
             {
                 case UnknownJobHandling.Requeue:
+                    shouldDeleteMessage = false;
                     break;
 
                 case UnknownJobHandling.RequeueThenDeleteAfterThreshold:
-                    if (message.DequeueCount >= consumerSettings.UnknownJobRequeueThreshold)
-                    {
-                        shouldDeleteMessage = true;
-                    }
+                    shouldDeleteMessage = (message.DequeueCount >= consumerSettings.UnknownJobRequeueThreshold);
                     break;
 
                 case UnknownJobHandling.Delete:
@@ -436,6 +451,82 @@ namespace Aqua
 
             requeueVisibilityTimeout = consumerSettings.UnknownJobRequeueTimeout;
         }
+
+        #endregion
+
+        #region Failed Job Handling
+
+        /// <summary>
+        /// Applies the FailedJobHandling behavior from the current ConsumerSettings.
+        /// </summary>
+        /// <param name="job">
+        /// The IJob for which execution failed.
+        /// </param>
+        /// <param name="jobDesc">
+        /// The JobDescriptor that describes the failed job.
+        /// </param>
+        /// <param name="exception">
+        /// The Exception which was raised, or null if no exception was raised.
+        /// </param>
+        private void ApplyFailedJobHandling(IJob job, JobDescriptor jobDesc, Exception exception)
+        {
+            Debug.Assert(null != job, "The job must not be null.");
+            Debug.Assert(null != jobDesc, "The job descriptor must not be null.");
+
+            switch (consumerSettings.FailedJobHandling)
+            {
+                case FailedJobHandling.Requeue:
+                case FailedJobHandling.RequeueThenDeleteAfterThreshold:
+                case FailedJobHandling.Delete:
+                    ApplyFailedJobHandling(consumerSettings.FailedJobHandling);
+                    break;
+
+                case FailedJobHandling.DedicePerJob:
+                    if (null == consumerSettings.FailedJobHandlingProvider)
+                    {
+                        throw new InvalidOperationException("The FailedJobHandlingProvider must not be null when 'DedicePerJob' is used.");
+                    }
+
+                    ApplyFailedJobHandling(consumerSettings.FailedJobHandlingProvider(job, jobDesc, exception));
+                    break;
+
+                default:
+                    throw new NotSupportedException("Unsupported FailedJobHandling: " + consumerSettings.FailedJobHandling);
+            }
+        }
+
+        /// <summary>
+        /// Applies the given FailedJobHandling behavior.
+        /// </summary>
+        /// <param name="handling">
+        /// The FailedJobHandling value to apply.
+        /// </param>
+        private void ApplyFailedJobHandling(FailedJobHandling handling)
+        {
+            switch (handling)
+            {
+                case FailedJobHandling.Requeue:
+                    shouldDeleteMessage = false;
+                    break;
+
+                case FailedJobHandling.RequeueThenDeleteAfterThreshold:
+                    shouldDeleteMessage = (message.DequeueCount >= consumerSettings.FailedJobRequeueThreshold);
+                    break;
+
+                case FailedJobHandling.Delete:
+                    shouldDeleteMessage = true;
+                    break;
+
+                case FailedJobHandling.DedicePerJob:
+                default:
+                    shouldDeleteMessage = false;
+                    throw new NotSupportedException("Unsupported FailedJobHandling: " + handling);
+            }
+
+            requeueVisibilityTimeout = consumerSettings.FailedJobRequeueTimeout;
+        }
+
+        #endregion
 
         /// <summary>
         /// Disposes this instance.

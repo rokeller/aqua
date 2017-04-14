@@ -49,9 +49,9 @@ namespace Aqua.Tests
         {
             bool calledBack = false;
             Guid guid = Guid.NewGuid();
-            MockJob.Callback = id =>
+            MockJob.Callback = mockJob =>
             {
-                Assert.That(id, Is.EqualTo(guid));
+                Assert.That(mockJob.Id, Is.EqualTo(guid));
                 calledBack = true;
 
                 return true;
@@ -73,10 +73,9 @@ namespace Aqua.Tests
 
                 bool calledBack = false;
                 Guid guid = Guid.NewGuid();
-                MockJob.Callback = id =>
+                MockJob.Callback = mockJob =>
                 {
                     Assert.Fail("The MockJob must not be executed.");
-                    Assert.That(id, Is.EqualTo(guid));
                     calledBack = true;
 
                     return true;
@@ -98,9 +97,9 @@ namespace Aqua.Tests
             {
                 bool calledBack = false;
                 Guid guid = Guid.NewGuid();
-                MockJob.Callback = id =>
+                MockJob.Callback = mockJob =>
                 {
-                    Assert.That(id, Is.EqualTo(guid));
+                    Assert.That(mockJob.Id, Is.EqualTo(guid));
                     calledBack = true;
                     cancelSource.Cancel();
 
@@ -137,9 +136,9 @@ namespace Aqua.Tests
         {
             bool calledBack = false;
             Guid guid = Guid.NewGuid();
-            MockJob.Callback = id =>
+            MockJob.Callback = mockJob =>
             {
-                Assert.That(id, Is.EqualTo(guid));
+                Assert.That(mockJob.Id, Is.EqualTo(guid));
                 calledBack = true;
 
                 return false;

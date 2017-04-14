@@ -116,29 +116,41 @@ namespace Aqua.Tests
 
             // Job with value-type properties.
             Guid guid = Guid.NewGuid();
-            desc = factory.CreateDescriptor(new MockJob() { Id = guid });
+            desc = factory.CreateDescriptor(new MockJob() { Id = guid, Int32 = 123, });
             Assert.That(desc, Is.Not.Null);
             Assert.That(desc.Job, Is.EqualTo("MockJob"));
-            Assert.That(desc.Properties, Is.Not.Null.And.Count.EqualTo(1));
+            Assert.That(desc.Properties, Is.Not.Null.And.Count.EqualTo(2));
+
             Assert.That(desc.Properties.TryGetValue("Id", out token), Is.True);
             Assert.That(token, Is.TypeOf<JValue>().And.Property("Type").EqualTo(JTokenType.Guid));
             Assert.That(token.ToObject<Guid>(), Is.EqualTo(guid));
+
+            Assert.That(desc.Properties.TryGetValue("Int32", out token), Is.True);
+            Assert.That(token, Is.TypeOf<JValue>().And.Property("Type").EqualTo(JTokenType.Integer));
+            Assert.That(token.ToObject<Int32>(), Is.EqualTo(123));
+
             Assert.That(desc.QueueMessageId, Is.Null);
         }
 
         [Test]
         public void Roundtrip()
         {
-            MockJob job = new MockJob() { Id = Guid.NewGuid() };
+            MockJob job = new MockJob() { Id = Guid.NewGuid(), Int32 = 987 };
             JobDescriptor desc = factory.CreateDescriptor(job);
             JToken token;
 
             Assert.That(desc, Is.Not.Null);
             Assert.That(desc.Job, Is.EqualTo("MockJob"));
-            Assert.That(desc.Properties, Is.Not.Null.And.Count.EqualTo(1));
+            Assert.That(desc.Properties, Is.Not.Null.And.Count.EqualTo(2));
+
             Assert.That(desc.Properties.TryGetValue("Id", out token), Is.True);
             Assert.That(token, Is.TypeOf<JValue>().And.Property("Type").EqualTo(JTokenType.Guid));
             Assert.That(token.ToObject<Guid>(), Is.EqualTo(job.Id));
+
+            Assert.That(desc.Properties.TryGetValue("Int32", out token), Is.True);
+            Assert.That(token, Is.TypeOf<JValue>().And.Property("Type").EqualTo(JTokenType.Integer));
+            Assert.That(token.ToObject<Int32>(), Is.EqualTo(987));
+
             Assert.That(desc.QueueMessageId, Is.Null);
 
             IJob job2 = factory.CreateJob(desc);
