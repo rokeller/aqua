@@ -12,18 +12,19 @@ Install-Package aqua.lib -Pre
 
 ## Summary
 aqua is a lightweight helper library to interact with Queues in Azure Storage Accounts in a produce/consumer like
-scenario where the messages in the queue define jobs to execute. aqua will be made available as a NuGet package once
-the first release candidates are ready.
+scenario where the messages in the queue define jobs to execute. aqua is made available as a NuGet package with strong
+named assemblies for your convenience.
 
 Currently, jobs are specified in JSON similar to the below.
 ```json
 { "Job": "HelloWho", "Properties": { "Who": "World" } }
 ```
 
-You can use the `Producer` to create and enqueue job requests, or you can craft them manually. A message with the above content can be interpreted to instruct a worker (using aqua) to execute the `HelloWho` job with
-the parameter `Who` set to `World`.
+You can use the `Producer` to create and enqueue job requests, or you can craft them manually. Jobs can be queued on
+demand, and you can even use Azure Scheduler Jobs to queue job requests periodically. A message with the above content
+can be interpreted to instruct a worker (using aqua) to execute the `HelloWho` job with the parameter `Who` set to `World`.
 
-Let there be a registered job type such as the following:
+That is, if there is a registered job type such as the following:
 
 ```c#
 public sealed class HelloWho : JobBase
@@ -43,17 +44,17 @@ aqua helps in binding the job descriptor from the message to a new instance of t
 
 ## Configurability
 Through a few basic configuration settings, aqua can be configured to either discard messages that are not understood or
-that describe unknown jobs, or to requeue them (at the end of the queue). The former can be useful for queues which are
-used solely by aqua-based consumers, while the latter may be useful if the same queue is used by a multitude of
-different consumers which know how to handle subsets of the messages stored in that queue.
+that describe unknown jobs, or to requeue them, if desired only up to a certain threshold of times. The former can be
+useful for queues which are used solely by aqua-based consumers, while the latter may be useful if the same queue is
+used by a multitude of different consumers which know how to handle subsets of the messages stored in that queue.
+Requeueing can be done with a visibility timeout to enable basic retry scenarios with wait times.
 
 In addition, aqua can be configured to reuse existing CloudStorageAccount objects when connecting to Azure, or to create
 new ones based on connection strings or account names and keys. Of course it also allows to connect to the local Azure
-Stroage Emulator for local testing and debugging.
+Storage Emulator for local testing and debugging.
 
-When using the aqua `Consumer` to consume (and handle) jobs from the queue, you can also specify the behavior to apply
-when the queue is currently empty through strategies. In addition to implementing your own custom strategies, the
-following strategies are available out of the box:
+When using the aqua `Consumer` to consume (and handle) jobs from the queue, you can also specify, through retry strategies,
+the behavior to apply when the queue is currently empty. The following retry strategies come with the aqua library:
 - No retry -- i.e. try once and then stop.
 - Simple Retry -- i.e. try N times with a static wait time between tries.
 - Linear Back-Off -- i.e. try N times with linear increasing wait times based on a configurable base wait time.
@@ -63,8 +64,16 @@ time.
 back-off) to introduce some variation for competing consumers.
 - Virtual Infinite Repeater -- i.e. repeat the last wait time from another strategy virtually forver.
 
+In addition, you can of course also implement your own custom strategies tailored to your needs.
+
 ## Recent Changes
 
+* v1.0.4.0
+  * Track job execution statistics such as average duration of succeeded and failed jobs per known job type.
+  * Add requeue behaviors for bad messages and unknown jobs up a certain threshold, then delete messages.
+  * Add consumer settings to configure the behavior for failed jobs too, offering the same options as for bad messages
+    and unknown jobs.
+  * Allow to specify a requeue visibility timeout for bad messages and unknown jobs, as well as failed jobs.
 * v1.0.3.0
   * Fix a bug in the `InfiniteRepeaterRetryStrategy` which would always return 00:00:00 as the wait time if asked right
     away for the wait time of an attempt not supported by the inner strategy. I.e. if an inner strategy was used to
