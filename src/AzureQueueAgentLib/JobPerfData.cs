@@ -93,7 +93,7 @@ namespace Aqua
         }
 
         /// <summary>
-        /// Gets the average duration for successful executions.
+        /// Gets the average duration in milliseconds for successful executions.
         /// </summary>
         public float AverageSuccessDuration
         {
@@ -106,7 +106,7 @@ namespace Aqua
         }
 
         /// <summary>
-        /// Gets the average duration for successful executions.
+        /// Gets the average duration in milliseconds for successful executions.
         /// </summary>
         public float AverageFailureDuration
         {
