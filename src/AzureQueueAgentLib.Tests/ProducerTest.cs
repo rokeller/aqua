@@ -46,9 +46,12 @@ namespace Aqua.Tests
 
             msg = queue.GetMessage();
             Assert.That(msg, Is.Not.Null);
+            Assert.That(msg.AsString, Is.EqualTo("{\"Job\":\"HelloWho\",\"Properties\":{\"Who\":\"ProducerTest-One\"}}"));
 
             JobDescriptor descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
-            Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
+            Assert.That(descriptor, Is.Not.Null.
+                And.Property("Job").EqualTo("HelloWho").
+                And.Property("Properties").Count.EqualTo(1));
             Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-One"));
 
             queue.DeleteMessage(msg);
@@ -65,9 +68,12 @@ namespace Aqua.Tests
 
             msg = queue.GetMessage();
             Assert.That(msg, Is.Not.Null);
+            Assert.That(msg.AsString, Is.EqualTo("{\"Job\":\"HelloWho\",\"Properties\":{\"Who\":\"ProducerTest-OneWithJobDescriptor\"}}"));
 
             descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
-            Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
+            Assert.That(descriptor, Is.Not.Null.
+                And.Property("Job").EqualTo("HelloWho").
+                And.Property("Properties").Count.EqualTo(1));
             Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-OneWithJobDescriptor"));
 
             queue.DeleteMessage(msg);
@@ -89,9 +95,12 @@ namespace Aqua.Tests
 
             msg = queue.GetMessage();
             Assert.That(msg, Is.Not.Null);
+            Assert.That(msg.AsString, Is.EqualTo("{\"Job\":\"HelloWho\",\"Properties\":{\"Who\":\"ProducerTest-OneWithInitialVisibilityDelay\"}}"));
 
             JobDescriptor descriptor = JsonConvert.DeserializeObject<JobDescriptor>(msg.AsString);
-            Assert.That(descriptor, Is.Not.Null.And.Property("Job").EqualTo("HelloWho").And.Property("Properties").Count.EqualTo(1));
+            Assert.That(descriptor, Is.Not.Null.
+                And.Property("Job").EqualTo("HelloWho").
+                And.Property("Properties").Count.EqualTo(1));
             Assert.That(descriptor.Properties["Who"].ToObject<string>(), Is.EqualTo("ProducerTest-OneWithInitialVisibilityDelay"));
 
             queue.DeleteMessage(msg);

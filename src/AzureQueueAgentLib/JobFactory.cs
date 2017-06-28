@@ -103,9 +103,16 @@ namespace Aqua
                 throw new UnknownJobException(descriptor.QueueMessageId, descriptor.Job);
             }
 
-            IJob job = spec.CreateAndBind(descriptor.Properties);
+            try
+            {
+                IJob job = spec.CreateAndBind(descriptor.Properties);
 
-            return job;
+                return job;
+            }
+            catch (Exception ex)
+            {
+                throw new MessageFormatException(descriptor.QueueMessageId, ex);
+            }
         }
 
         /// <summary>

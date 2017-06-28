@@ -134,6 +134,28 @@ namespace Aqua.Tests
         }
 
         [Test]
+        public void DequeueBadMessageDelete_MessageWithFormatException()
+        {
+            consumerSettings.BadMessageHandling = BadMessageHandling.Delete;
+
+            AddMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"NotAGuid\"}}");
+            context = JobExecutionContext.Dequeue(this);
+
+            Assert.That(context.Empty, Is.False);
+            Assert.Throws(Is.TypeOf<MessageFormatException>().
+                    And.Property("MessageId").Not.Null.
+                    And.Property("InnerException").InstanceOf<FormatException>().
+                    And.Property("InnerException").Property("Message").EqualTo("Guid should contain 32 digits with 4 dashes (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)."),
+                () => context.Execute());
+
+            context.Dispose();
+
+            // Verify that the message NOT queued again.
+            CloudQueueMessage msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+        }
+
+        [Test]
         public void DequeueBadMessageUnknown()
         {
             consumerSettings.BadMessageHandling = (BadMessageHandling)99;

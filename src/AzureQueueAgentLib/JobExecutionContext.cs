@@ -163,12 +163,23 @@ namespace Aqua
         {
             Debug.Assert(!Empty, "Cannot execute an empty message.");
 
-            IJob job = this.job.Value;
+            IJob job = null;
 
             try
             {
+                job = this.job.Value;
                 RefreshVisibilityTimeout(task: null);
                 WasSuccessful = job.Execute();
+            }
+            catch (MessageFormatException)
+            {
+                ApplyBadMessageHandling();
+                throw;
+            }
+            catch (UnknownJobException)
+            {
+                ApplyUnknownJobHandling(jobDescriptor.Value);
+                throw;
             }
             catch (Exception ex)
             {
@@ -244,7 +255,6 @@ namespace Aqua
             }
             catch (Exception ex)
             {
-                ApplyBadMessageHandling();
                 throw new MessageFormatException(message.Id, ex);
             }
 
@@ -265,18 +275,10 @@ namespace Aqua
         /// </exception>
         private IJob GetJob()
         {
-            try
-            {
-                IJob job = factory.CreateJob(jobDescriptor.Value);
-                Debug.Assert(null != job, "The job must not be null.");
+            IJob job = factory.CreateJob(jobDescriptor.Value);
+            Debug.Assert(null != job, "The job must not be null.");
 
-                return job;
-            }
-            catch (UnknownJobException)
-            {
-                ApplyUnknownJobHandling(jobDescriptor.Value);
-                throw;
-            }
+            return job;
         }
 
         /// <summary>
