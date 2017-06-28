@@ -16,11 +16,6 @@ namespace Aqua
         /// </summary>
         private readonly IRetryStrategy inner;
 
-        /// <summary>
-        /// The last remembered wait time.
-        /// </summary>
-        private TimeSpan? lastWaitTime;
-
         #endregion
 
         #region C'tors
@@ -75,25 +70,18 @@ namespace Aqua
         {
             if (inner.ShouldRetry(attempt))
             {
-                lastWaitTime = inner.GetWaitTime(attempt);
+                return inner.GetWaitTime(attempt);
             }
 
-            if (!lastWaitTime.HasValue)
+            // We don't know the last wait time used by the inner strategy yet, so let's go and discover it.
+            int lastSupportedAttempt = 1;
+
+            while (inner.ShouldRetry(lastSupportedAttempt + 1))
             {
-                // We don't know the last wait time used by the inner strategy yet, so let's go and discover it.
-                int lastSupportedAttempt = 1;
-
-                while (inner.ShouldRetry(lastSupportedAttempt + 1))
-                {
-                    lastSupportedAttempt++;
-                }
-
-                lastWaitTime = inner.GetWaitTime(lastSupportedAttempt);
+                lastSupportedAttempt++;
             }
 
-            Debug.Assert(lastWaitTime.HasValue, "The last wait time must have a value.");
-
-            return lastWaitTime.Value;
+            return inner.GetWaitTime(lastSupportedAttempt);
         }
 
         #endregion

@@ -66,6 +66,8 @@ namespace Aqua.Tests
             WaitTimes_SkippingFirstFew(700);
             WaitTimes_SkippingFirstFew(8000);
             WaitTimes_SkippingFirstFew(90000);
+
+            WaitTimes_SkippingFirstFew(50);
         }
 
         private void WaitTimes_SkippingFirstFew(int skip)
@@ -74,7 +76,9 @@ namespace Aqua.Tests
             LinearBackoffRetryStrategy baseStrategy = new LinearBackoffRetryStrategy(3, TimeSpan.FromSeconds(1));
             InfiniteRepeaterRetryStrategy strategy = new InfiniteRepeaterRetryStrategy(baseStrategy);
 
+            Assert.That(strategy.GetWaitTime(1), Is.EqualTo(TimeSpan.FromSeconds(1)), "Attempt 1");
             Assert.That(strategy.GetWaitTime(skip), Is.EqualTo(inifiteWaitTime), "Attempt " + skip);
+            Assert.That(strategy.GetWaitTime(8), Is.EqualTo(inifiteWaitTime), "Attempt 8");
         }
     }
 }
