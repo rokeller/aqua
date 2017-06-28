@@ -470,6 +470,33 @@ namespace Aqua.Tests
             Assert.That(msg, Is.Null);
         }
 
+        [Test]
+        public void ExecuteSuccess_WithExtraJsonProps()
+        {
+            Guid guid = Guid.NewGuid();
+            // Test a message which has an extra property 'DequeueCount' which should be ignored.
+            AddXmlMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"},\"DequeueCount\":123}");
+            context = JobExecutionContext.Dequeue(this);
+
+            MockJob.Callback = mockJob =>
+            {
+                Assert.That(mockJob.Id, Is.EqualTo(guid));
+
+                return true;
+            };
+
+            Assert.That(context.Empty, Is.False);
+            Assert.That(context.Execute(), Is.True);
+            Assert.That(context.JobName, Is.EqualTo("MockJob"));
+            Assert.That(context.WasSuccessful, Is.True);
+
+            context.Dispose();
+
+            // Verify that the message was deleted.
+            CloudQueueMessage msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+        }
+
         #region Failed Jobs
 
         #region Job Executions Returns False

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 
 namespace Aqua
@@ -26,6 +27,7 @@ namespace Aqua
         /// <summary>
         /// Gets or sets the Dequeue Count of the underlying message that contains the job.
         /// </summary>
+        [JsonIgnore]
         public int DequeueCount { get; internal set; }
     }
 }
