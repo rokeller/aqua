@@ -68,6 +68,12 @@ In addition, you can of course also implement your own custom strategies tailore
 
 ## Recent Changes
 
+* v1.0.5.0
+  * Fix a bug in the `InfiniteRepeaterRetryStrategy` which would end up using an intermediate wait time if hopping
+    between attempts.
+  * Remove the `DequeueCount` property from queue messages created with the `Producer`.
+  * Catch exceptions when binding jobs to a descriptor throws, e.g. due to deserialization exceptions, and treat the
+    underlying message as bad messages.
 * v1.0.4.0
   * Track job execution statistics such as average duration of succeeded and failed jobs per known job type.
   * Add requeue behaviors for bad messages and unknown jobs up a certain threshold, then delete messages.
