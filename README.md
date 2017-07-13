@@ -68,6 +68,9 @@ In addition, you can of course also implement your own custom strategies tailore
 
 ## Recent Changes
 
+* v1.0.6.0
+  * Fix a bug in the `Consumer`'s handling of binary messages which cannot be converted to string -- treat them as bad
+    messages and apply the configured behavior.
 * v1.0.5.0
   * Fix a bug in the `InfiniteRepeaterRetryStrategy` which would end up using an intermediate wait time if hopping
     between attempts.
