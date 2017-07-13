@@ -156,6 +156,28 @@ namespace Aqua.Tests
         }
 
         [Test]
+        public void DequeueBadMessageDelete_BinaryMessage()
+        {
+            consumerSettings.BadMessageHandling = BadMessageHandling.Delete;
+
+            AddMessage(new byte[] { 255, 20, 255, }); // Invalid sequence in UTF8.
+            context = JobExecutionContext.Dequeue(this);
+
+            Assert.That(context.Empty, Is.False);
+            Assert.Throws(Is.TypeOf<MessageFormatException>().
+                    And.Property("MessageId").Not.Null.
+                    And.Property("InnerException").InstanceOf<DecoderFallbackException>().
+                    And.Property("InnerException").Property("Message").EqualTo("Unable to translate bytes [FF] at index -1 from specified code page to Unicode."),
+                () => context.Execute());
+
+            context.Dispose();
+
+            // Verify that the message NOT queued again.
+            CloudQueueMessage msg = queue.GetMessage();
+            Assert.That(msg, Is.Null);
+        }
+
+        [Test]
         public void DequeueBadMessageUnknown()
         {
             consumerSettings.BadMessageHandling = (BadMessageHandling)99;
@@ -1101,6 +1123,11 @@ namespace Aqua.Tests
         }
 
         private void AddMessage(string body)
+        {
+            queue.AddMessage(new CloudQueueMessage(body));
+        }
+
+        private void AddMessage(byte[] body)
         {
             queue.AddMessage(new CloudQueueMessage(body));
         }

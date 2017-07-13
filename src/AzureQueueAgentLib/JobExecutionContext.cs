@@ -244,11 +244,12 @@ namespace Aqua
         /// </returns>
         private JobDescriptor GetJobDescriptor()
         {
-            string body = GetMessageBody();
             JobDescriptor jobDesc;
 
             try
             {
+                string body = GetMessageBody();
+
                 jobDesc = JsonConvert.DeserializeObject<JobDescriptor>(body, jsonSettings);
                 jobDesc.QueueMessageId = message.Id;
                 jobDesc.DequeueCount = message.DequeueCount;

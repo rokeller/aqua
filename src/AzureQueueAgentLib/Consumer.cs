@@ -163,7 +163,7 @@ namespace Aqua
                         break;
                     }
 
-                    using (new JobPerfContext(context, GetPerfData(context)))
+                    using (new JobPerfContext(this, context))
                     {
                         return context.Execute();
                     }
@@ -245,7 +245,6 @@ namespace Aqua
         private JobPerfData GetPerfData(JobExecutionContext context)
         {
             Debug.Assert(null != context, "The job execution context must not be null.");
-
             JobPerfData data;
 
             if (!perfData.TryGetValue(context.JobName, out data))
@@ -267,14 +266,14 @@ namespace Aqua
         private sealed class JobPerfContext : IDisposable
         {
             /// <summary>
+            /// The Consumer instance which owns this context.
+            /// </summary>
+            private readonly Consumer owner;
+
+            /// <summary>
             /// The JobExecutionContext this instance is for.
             /// </summary>
             private readonly JobExecutionContext jobContext;
-
-            /// <summary>
-            /// The JobPerfData object to update.
-            /// </summary>
-            private readonly JobPerfData perfData;
 
             /// <summary>
             /// The Stopwatch to use for measuring the duration of job execution.
@@ -284,19 +283,19 @@ namespace Aqua
             /// <summary>
             /// Initializes a new instance of JobPerfContext.
             /// </summary>
+            /// <param name="owner">
+            /// The Consumer instance which owns this context.
+            /// </param>
             /// <param name="jobContext">
             /// The JobExecutionContext this instance is for.
             /// </param>
-            /// <param name="perfData">
-            /// The JobPerfData to update with data collected with this instance.
-            /// </param>
-            public JobPerfContext(JobExecutionContext jobContext, JobPerfData perfData)
+            public JobPerfContext(Consumer owner, JobExecutionContext jobContext)
             {
+                Debug.Assert(null != owner, "The owner must not be null.");
                 Debug.Assert(null != jobContext, "The job execution context must not be null.");
-                Debug.Assert(null != perfData, "The job perf data must not be null.");
 
+                this.owner = owner;
                 this.jobContext = jobContext;
-                this.perfData = perfData;
             }
 
             /// <summary>
@@ -305,14 +304,28 @@ namespace Aqua
             public void Dispose()
             {
                 watch.Stop();
+                JobPerfData data;
+
+                try
+                {
+                    data = owner.GetPerfData(jobContext);
+                }
+                catch (Exception)
+                {
+                    // We get an exception e.g. when the job message is badly formatted etc. In any such case, we won't
+                    // be able to update the per-job statistics, so we stop here.
+                    return;
+                }
+
+                Debug.Assert(null != data, "The perf data container must not be null.");
 
                 if (jobContext.WasSuccessful)
                 {
-                    perfData.UpdateSuccess(watch.ElapsedMilliseconds);
+                    data.UpdateSuccess(watch.ElapsedMilliseconds);
                 }
                 else
                 {
-                    perfData.UpdateFailure(watch.ElapsedMilliseconds);
+                    data.UpdateFailure(watch.ElapsedMilliseconds);
                 }
             }
         }

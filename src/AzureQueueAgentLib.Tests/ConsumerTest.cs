@@ -12,6 +12,7 @@ namespace Aqua.Tests
     {
         private JobFactory factory;
         private Consumer consumer;
+        private ConsumerSettings settings;
 
         [Test]
         public void CtorInputValidation()
@@ -132,6 +133,70 @@ namespace Aqua.Tests
         }
 
         [Test]
+        public void One_BadMessage()
+        {
+            bool calledBack = false;
+
+            settings.BadMessageHandling = BadMessageHandling.DecidePerMessage;
+            settings.BadMessageHandlingProvider = (msg) =>
+            {
+                Assert.That(msg.AsString, Is.EqualTo("One_BadMessage"));
+                calledBack = true;
+
+                return BadMessageHandling.Delete;
+            };
+
+            CloudQueue queue = consumer.GetService<CloudQueue>();
+            queue.AddMessage(new CloudQueueMessage("One_BadMessage"));
+
+            Assert.Throws(Is.TypeOf<MessageFormatException>(), () => consumer.One());
+            Assert.That(calledBack, Is.True);
+
+            IReadOnlyDictionary<string, JobPerfData> perfData = consumer.GetPerfSnapshot();
+            Assert.That(perfData, Is.Not.Null);
+            Assert.That(perfData.Count, Is.EqualTo(0));
+
+            CloudQueueMessage message = queue.GetMessage();
+            Assert.That(message, Is.Null);
+        }
+
+        [Test]
+        public void One_UnknownJob()
+        {
+            bool calledBack = false;
+
+            settings.UnknownJobHandling = UnknownJobHandling.DedicePerJob;
+            settings.UnknownJobHandlingProvider = (jobDesc) =>
+            {
+                Assert.That(jobDesc.Job, Is.EqualTo("UnknownJob"));
+                calledBack = true;
+
+                return UnknownJobHandling.Delete;
+            };
+
+            CloudQueue queue = consumer.GetService<CloudQueue>();
+            queue.AddMessage(new CloudQueueMessage("{\"Job\":\"UnknownJob\"}"));
+
+            Assert.Throws(Is.TypeOf<UnknownJobException>(), () => consumer.One());
+            Assert.That(calledBack, Is.True);
+
+            IReadOnlyDictionary<string, JobPerfData> perfData = consumer.GetPerfSnapshot();
+            Assert.That(perfData, Is.Not.Null);
+            Assert.That(perfData.Count, Is.EqualTo(1));
+
+            JobPerfData data;
+            Assert.That(perfData.TryGetValue("UnknownJob", out data), Is.True);
+            Assert.That(data.JobName, Is.EqualTo("UnknownJob"));
+            Assert.That(data.SuccessCount, Is.EqualTo(0));
+            Assert.That(data.FailureCount, Is.EqualTo(1));
+            Assert.That(data.SuccessDuration, Is.EqualTo(0));
+            Assert.That(data.FailureDuration, Is.GreaterThanOrEqualTo(0));
+
+            CloudQueueMessage message = queue.GetMessage();
+            Assert.That(message, Is.Null);
+        }
+
+        [Test]
         public void One_ExecutionFailed()
         {
             bool calledBack = false;
@@ -181,7 +246,8 @@ namespace Aqua.Tests
         [SetUp]
         public void Setup()
         {
-            consumer = new Consumer(new ConnectionSettings("consumertest"), factory);
+            settings = ConsumerSettings.CreateDefault();
+            consumer = new Consumer(new ConnectionSettings("consumertest"), factory, settings);
         }
 
         [TearDown]
