@@ -4,16 +4,19 @@
         <SignAssembly>True</SignAssembly>
         <DelaySign>True</DelaySign>
         <AssemblyOriginatorKeyFile>../PublicKey.snk</AssemblyOriginatorKeyFile>
-        <Title>Aqua.Lib</Title>
+        <Title>Azure Queue Agent</Title>
         <Version>1.0.7</Version>
         <Copyright>Copyright © 2016-2019 by Roger Keller</Copyright>
         <Authors>Roger Keller</Authors>
-        <PackageLicenseUrl>https://github.com/rokeller/aqua/blob/master/LICENSE</PackageLicenseUrl>
+        <PackageId>aqua.lib</PackageId>
+        <Description>Producer and Consumer for Azure Queue-based Job Executors.</Description>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/rokeller/aqua/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/rokeller/aqua/</RepositoryUrl>
         <PackageTags>azure storage account queue message job task producer consumer</PackageTags>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.7.0</FileVersion>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
 
     <ItemGroup>
