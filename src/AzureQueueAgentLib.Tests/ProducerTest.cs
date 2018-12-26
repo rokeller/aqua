@@ -10,7 +10,7 @@ namespace Aqua.Tests
     [TestFixture]
     public sealed class ProducerTest
     {
-        private static readonly CloudStorageAccount acct = CloudStorageAccount.DevelopmentStorageAccount;
+        private static readonly CloudStorageAccount acct = StorageAccount.Get();
         private static readonly CloudQueueClient client = acct.CreateCloudQueueClient();
         private static CloudQueue queue;
         private JobFactory factory;
@@ -22,7 +22,7 @@ namespace Aqua.Tests
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("connectionSettings"),
                 () => new Producer(null, factory));
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("factory"),
-                () => new Producer(new ConnectionSettings("producertest"), null));
+                () => new Producer(new ConnectionSettings(acct, "producertest"), null));
         }
 
         [Test]
@@ -119,7 +119,7 @@ namespace Aqua.Tests
         [SetUp]
         public void Setup()
         {
-            producer = new Producer(new ConnectionSettings("producertest"), factory);
+            producer = new Producer(new ConnectionSettings(acct, "producertest"), factory);
         }
 
         [TearDown]

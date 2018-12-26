@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage.Queue;
+﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
@@ -231,7 +232,7 @@ namespace Aqua
         /// </returns>
         private JobExecutionContext Dequeue()
         {
-            message = queue.GetMessage(VisibilityTimeout);
+            message = queue.GetMessageAsync(VisibilityTimeout, null, null).GetAwaiter().GetResult();
 
             return this;
         }
@@ -323,7 +324,7 @@ namespace Aqua
                     return;
                 }
 
-                queue.UpdateMessage(message, VisibilityTimeout, MessageUpdateFields.Visibility);
+                queue.UpdateMessageAsync(message, VisibilityTimeout, MessageUpdateFields.Visibility).GetAwaiter().GetResult();
             }
 
             Task.Delay(VisibilityTimeoutUpdatePeriod, cancellationTokenSource.Token)
@@ -411,10 +412,10 @@ namespace Aqua
                     ApplyUnknownJobHandling(consumerSettings.UnknownJobHandling);
                     break;
 
-                case UnknownJobHandling.DedicePerJob:
+                case UnknownJobHandling.DecidePerJob:
                     if (null == consumerSettings.UnknownJobHandlingProvider)
                     {
-                        throw new InvalidOperationException("The UnknownJobHandlingProvider must not be null when 'DedicePerJob' is used.");
+                        throw new InvalidOperationException("The UnknownJobHandlingProvider must not be null when 'DecidePerJob' is used.");
                     }
 
                     ApplyUnknownJobHandling(consumerSettings.UnknownJobHandlingProvider(jobDesc));
@@ -447,7 +448,7 @@ namespace Aqua
                     shouldDeleteMessage = true;
                     break;
 
-                case UnknownJobHandling.DedicePerJob:
+                case UnknownJobHandling.DecidePerJob:
                 default:
                     throw new NotSupportedException("Unsupported UnknownJobHandling: " + handling);
             }
@@ -484,10 +485,10 @@ namespace Aqua
                     ApplyFailedJobHandling(consumerSettings.FailedJobHandling);
                     break;
 
-                case FailedJobHandling.DedicePerJob:
+                case FailedJobHandling.DecidePerJob:
                     if (null == consumerSettings.FailedJobHandlingProvider)
                     {
-                        throw new InvalidOperationException("The FailedJobHandlingProvider must not be null when 'DedicePerJob' is used.");
+                        throw new InvalidOperationException("The FailedJobHandlingProvider must not be null when 'DecidePerJob' is used.");
                     }
 
                     ApplyFailedJobHandling(consumerSettings.FailedJobHandlingProvider(job, jobDesc, exception));
@@ -520,7 +521,7 @@ namespace Aqua
                     shouldDeleteMessage = true;
                     break;
 
-                case FailedJobHandling.DedicePerJob:
+                case FailedJobHandling.DecidePerJob:
                 default:
                     shouldDeleteMessage = false;
                     throw new NotSupportedException("Unsupported FailedJobHandling: " + handling);
@@ -562,14 +563,32 @@ namespace Aqua
         {
             if (null != message)
             {
-                if (shouldDeleteMessage)
+                try
                 {
-                    queue.DeleteMessage(message);
+                    Task t;
+
+                    if (shouldDeleteMessage)
+                    {
+                        t = queue.DeleteMessageAsync(message);
+                    }
+                    else
+                    {
+                        // We should keep the message, so update just its visibility timeout.
+                        t = queue.UpdateMessageAsync(message, requeueVisibilityTimeout, MessageUpdateFields.Visibility);
+                    }
+
+                    t.GetAwaiter().GetResult();
                 }
-                else
+                catch (StorageException ex)
                 {
-                    // We should keep the message, so update just its visibility timeout.
-                    queue.UpdateMessage(message, requeueVisibilityTimeout, MessageUpdateFields.Visibility);
+                    if (404 == ex.RequestInformation.HttpStatusCode)
+                    {
+                        // The message does not exist anymore, so there's nothing left for us to do here.
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 

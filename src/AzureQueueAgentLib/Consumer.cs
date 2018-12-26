@@ -83,7 +83,7 @@ namespace Aqua
             }
 
             queue = connectionSettings.GetQueue();
-            queue.CreateIfNotExists();
+            queue.CreateIfNotExistsAsync().GetAwaiter().GetResult();
 
             this.connectionSettings = connectionSettings;
             this.factory = factory;

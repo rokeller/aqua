@@ -22,15 +22,6 @@ namespace Aqua
         #region C'tors
 
         /// <summary>
-        /// Initializes a new instance of ConnectionSettings using the Development Storage Account (i.e. the local
-        /// emulator).
-        /// </summary>
-        /// <param name="queueName">
-        /// The name of the queue to connect to.
-        /// </param>
-        public ConnectionSettings(string queueName) : this(CloudStorageAccount.DevelopmentStorageAccount, queueName) { }
-
-        /// <summary>
         /// Initializes a new instance of ConnectionSettings using the given CloudStorageAccount and queue name.
         /// </summary>
         /// <param name="storageAccount">

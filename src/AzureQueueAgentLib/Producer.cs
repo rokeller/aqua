@@ -51,7 +51,7 @@ namespace Aqua
             }
 
             queue = connectionSettings.GetQueue();
-            queue.CreateIfNotExists();
+            queue.CreateIfNotExistsAsync().GetAwaiter().GetResult();
 
             this.connectionSettings = connectionSettings;
             this.factory = factory;
@@ -127,7 +127,7 @@ namespace Aqua
             string body = JsonConvert.SerializeObject(descriptor);
             CloudQueueMessage msg = new CloudQueueMessage(body);
 
-            queue.AddMessage(msg, /* timeToLive */ null, initialVisibilityDelay);
+            queue.AddMessageAsync(msg, /* timeToLive */ null, initialVisibilityDelay, null, null).GetAwaiter().GetResult();
         }
 
         #endregion

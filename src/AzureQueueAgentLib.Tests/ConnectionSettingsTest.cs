@@ -8,19 +8,19 @@ namespace Aqua.Tests
     [TestFixture]
     public sealed class ConnectionSettingsTest
     {
-        private static readonly CloudStorageAccount acct = CloudStorageAccount.DevelopmentStorageAccount;
+        private static readonly CloudStorageAccount acct = StorageAccount.Get();
         private static readonly CloudQueueClient client = acct.CreateCloudQueueClient();
 
         [Test]
-        public void DevAccount()
+        public void ByStorageAccount()
         {
-            ConnectionSettings settings = new ConnectionSettings("connectionsettingstest");
+            ConnectionSettings settings = new ConnectionSettings(acct, "connectionsettingstest");
             CloudQueue queue = settings.GetQueue();
 
             Assert.That(queue, Is.Not.Null);
             Assert.That(queue.Exists());
 
-            settings = new ConnectionSettings("connectionsettingstest-devaccount");
+            settings = new ConnectionSettings(acct, "connectionsettingstest-devaccount");
             queue = settings.GetQueue();
 
             Assert.That(queue, Is.Not.Null);
@@ -28,14 +28,9 @@ namespace Aqua.Tests
         }
 
         [Test]
-        public void DevAccountConnectionString()
+        public void ByStorageAccountConnectionString()
         {
-            string connStr =
-                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" +
-                "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
-                "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;" +
-                "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;" +
-                "QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;";
+            string connStr = StorageAccount.GetConnectionString();
 
             ConnectionSettings settings = new ConnectionSettings(connStr, "connectionsettingstest");
             CloudQueue queue = settings.GetQueue();
@@ -51,13 +46,15 @@ namespace Aqua.Tests
         }
 
         [Test]
-        public void DevAccountNameAndKey()
+        public void ByAccountNameAndKey()
         {
             ConnectionSettings settings = new ConnectionSettings("devstoreaccount1", "Zm9yYmlkZGVu", "connectionsettingstest");
             CloudQueue queue = settings.GetQueue();
 
             Assert.That(queue, Is.Not.Null);
-            Assert.Throws(Is.TypeOf<StorageException>().And.Message.Contains("Forbidden"), () => queue.Exists());
+            Assert.Throws(Is.TypeOf<StorageException>().And
+                .Property("RequestInformation")
+                    .Property("HttpStatusCode").EqualTo(403), () => queue.Exists());
         }
 
         #region Input Validation
@@ -65,14 +62,6 @@ namespace Aqua.Tests
         [Test]
         public void CtorInputValidation()
         {
-            // Queue only
-            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("queueName"),
-                () => new ConnectionSettings(null));
-            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("queueName"),
-                () => new ConnectionSettings(""));
-            Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("queueName"),
-                () => new ConnectionSettings("    "));
-
             // Account and Queue
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("storageAccount"),
                 () => new ConnectionSettings((CloudStorageAccount)null, "queue"));

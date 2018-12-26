@@ -170,7 +170,7 @@ namespace Aqua
         /// <summary>
         /// Decide per job, using the UnknownJobHandlingProvider from the settings.
         /// </summary>
-        DedicePerJob,
+        DecidePerJob,
     }
 
     /// <summary>
@@ -197,6 +197,6 @@ namespace Aqua
         /// <summary>
         /// Decide per job, using the FailedJobHandlingProvider from the settings.
         /// </summary>
-        DedicePerJob,
+        DecidePerJob,
     }
 }

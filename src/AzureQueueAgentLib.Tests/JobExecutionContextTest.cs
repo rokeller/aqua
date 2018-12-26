@@ -58,7 +58,7 @@ namespace Aqua.Tests
         public void DequeueBadMessageRequeue_Timeout()
         {
             consumerSettings.BadMessageHandling = BadMessageHandling.Requeue;
-            consumerSettings.BadMessageRequeueTimeout = TimeSpan.FromMilliseconds(100);
+            consumerSettings.BadMessageRequeueTimeout = TimeSpan.FromSeconds(1);
 
             AddMessage("DequeueBadMessageRequeue");
             context = JobExecutionContext.Dequeue(this);
@@ -307,7 +307,7 @@ namespace Aqua.Tests
         [Test]
         public void DequeueUnknownJobRequeue_Timeout()
         {
-            consumerSettings.UnknownJobRequeueTimeout = TimeSpan.FromMilliseconds(100);
+            consumerSettings.UnknownJobRequeueTimeout = TimeSpan.FromSeconds(1);
 
             AddMessage("{\"Job\":\"DequeueUnknownJobRequeue\"}");
             context = JobExecutionContext.Dequeue(this);
@@ -405,7 +405,7 @@ namespace Aqua.Tests
         [Test]
         public void DequeueUnknownJobAsk()
         {
-            consumerSettings.UnknownJobHandling = UnknownJobHandling.DedicePerJob;
+            consumerSettings.UnknownJobHandling = UnknownJobHandling.DecidePerJob;
             consumerSettings.UnknownJobHandlingProvider = descriptor =>
             {
                 if (descriptor.Job.EndsWith("1"))
@@ -422,7 +422,7 @@ namespace Aqua.Tests
                 }
                 else
                 {
-                    return UnknownJobHandling.DedicePerJob;
+                    return UnknownJobHandling.DecidePerJob;
                 }
             };
 
@@ -464,7 +464,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And
-                .Message.EqualTo("Unsupported UnknownJobHandling: DedicePerJob"),
+                .Message.EqualTo("Unsupported UnknownJobHandling: DecidePerJob"),
                 () => context.Execute());
 
             context.Dispose();
@@ -475,7 +475,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<InvalidOperationException>().And
-                .Message.EqualTo("The UnknownJobHandlingProvider must not be null when 'DedicePerJob' is used."),
+                .Message.EqualTo("The UnknownJobHandlingProvider must not be null when 'DecidePerJob' is used."),
                 () => context.Execute());
 
             context.Dispose();
@@ -576,7 +576,7 @@ namespace Aqua.Tests
         [Test]
         public void ExecuteFailed_Requeue_Timeout()
         {
-            consumerSettings.FailedJobRequeueTimeout = TimeSpan.FromMilliseconds(100);
+            consumerSettings.FailedJobRequeueTimeout = TimeSpan.FromSeconds(1);
 
             Guid guid = Guid.NewGuid();
             string msgBody = "{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}";
@@ -713,7 +713,7 @@ namespace Aqua.Tests
         [Test]
         public void ExecuteFailed_Ask()
         {
-            consumerSettings.FailedJobHandling = FailedJobHandling.DedicePerJob;
+            consumerSettings.FailedJobHandling = FailedJobHandling.DecidePerJob;
             consumerSettings.FailedJobHandlingProvider = (job, descriptor, exception) =>
             {
                 Assert.That(job, Is.InstanceOf<MockJob>());
@@ -731,13 +731,11 @@ namespace Aqua.Tests
                         return FailedJobHandling.Requeue;
                     case 3:
                         Assert.That(exception, Is.Null);
-                        //Assert.That(exception, Is.Null.Or.InstanceOf<NotSupportedException>());
                         return (FailedJobHandling)999;
 
                     default:
                         Assert.That(exception, Is.Null);
-                        //Assert.That(exception, Is.Null.Or.InstanceOf<NotSupportedException>());
-                        return FailedJobHandling.DedicePerJob;
+                        return FailedJobHandling.DecidePerJob;
                 }
             };
 
@@ -782,7 +780,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And
-                .Message.EqualTo("Unsupported FailedJobHandling: DedicePerJob"),
+                .Message.EqualTo("Unsupported FailedJobHandling: DecidePerJob"),
                 () => context.Execute());
 
             context.Dispose();
@@ -793,7 +791,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<InvalidOperationException>().And
-                .Message.EqualTo("The FailedJobHandlingProvider must not be null when 'DedicePerJob' is used."),
+                .Message.EqualTo("The FailedJobHandlingProvider must not be null when 'DecidePerJob' is used."),
                 () => context.Execute());
 
             context.Dispose();
@@ -837,7 +835,7 @@ namespace Aqua.Tests
         [Test]
         public void ExecuteException_Requeue_Timeout()
         {
-            consumerSettings.FailedJobRequeueTimeout = TimeSpan.FromMilliseconds(100);
+            consumerSettings.FailedJobRequeueTimeout = TimeSpan.FromSeconds(1);
 
             Guid guid = Guid.NewGuid();
             AddMessage("{\"Job\":\"MockJob\",\"Properties\":{\"Id\":\"" + guid + "\"}}");
@@ -974,7 +972,7 @@ namespace Aqua.Tests
         [Test]
         public void ExecuteException_Ask()
         {
-            consumerSettings.FailedJobHandling = FailedJobHandling.DedicePerJob;
+            consumerSettings.FailedJobHandling = FailedJobHandling.DecidePerJob;
             consumerSettings.FailedJobHandlingProvider = (job, descriptor, exception) =>
             {
                 Assert.That(job, Is.InstanceOf<MockJob>());
@@ -993,7 +991,7 @@ namespace Aqua.Tests
                         return (FailedJobHandling)999;
 
                     default:
-                        return FailedJobHandling.DedicePerJob;
+                        return FailedJobHandling.DecidePerJob;
                 }
             };
 
@@ -1038,7 +1036,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<NotSupportedException>().And
-                .Message.EqualTo("Unsupported FailedJobHandling: DedicePerJob"),
+                .Message.EqualTo("Unsupported FailedJobHandling: DecidePerJob"),
                 () => context.Execute());
 
             context.Dispose();
@@ -1049,7 +1047,7 @@ namespace Aqua.Tests
 
             Assert.That(context.Empty, Is.False);
             Assert.Throws(Is.TypeOf<InvalidOperationException>().And
-                .Message.EqualTo("The FailedJobHandlingProvider must not be null when 'DedicePerJob' is used."),
+                .Message.EqualTo("The FailedJobHandlingProvider must not be null when 'DecidePerJob' is used."),
                 () => context.Execute());
 
             context.Dispose();
@@ -1069,7 +1067,7 @@ namespace Aqua.Tests
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
-            CloudQueueClient client = CloudStorageAccount.DevelopmentStorageAccount.CreateCloudQueueClient();
+            CloudQueueClient client = StorageAccount.Get().CreateCloudQueueClient();
 
             queue = client.GetQueueReference("jobexecutioncontexttest");
             queue.CreateIfNotExists();
@@ -1129,7 +1127,7 @@ namespace Aqua.Tests
 
         private void AddMessage(byte[] body)
         {
-            queue.AddMessage(new CloudQueueMessage(body));
+            queue.AddMessage(CloudQueueMessage.CreateCloudQueueMessageFromByteArray(body));
         }
 
         private void AddXmlMessage(string body)

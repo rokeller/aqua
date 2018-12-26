@@ -68,6 +68,10 @@ In addition, you can of course also implement your own custom strategies tailore
 
 ## Recent Changes
 
+* v1.0.7
+  * Migrate to netstandard 2.0.
+  * Update `Newtonsoft.Json` and `WindowsAzure.Storage` NuGet dependencies. 
+  * Fix typo in `DedicePerJob` enum value, make it `DecidePerJob`.
 * v1.0.6.0
   * Fix a bug in the `Consumer`'s handling of binary messages which cannot be converted to string -- treat them as bad
     messages and apply the configured behavior.

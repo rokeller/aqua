@@ -20,9 +20,9 @@ namespace Aqua.Tests
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("connectionSettings"),
                 () => new Consumer(null, factory));
             Assert.Throws(Is.TypeOf<ArgumentNullException>().And.Property("ParamName").EqualTo("factory"),
-                () => new Consumer(new ConnectionSettings("consumertest"), null));
+                () => new Consumer(new ConnectionSettings(StorageAccount.Get(), "consumertest"), null));
 
-            consumer = new Consumer(new ConnectionSettings("consumertest"), factory, null);
+            consumer = new Consumer(new ConnectionSettings(StorageAccount.Get(), "consumertest"), factory, null);
             Assert.That(((IServiceProvider)consumer).GetService<ConsumerSettings>(), Is.Not.Null);
         }
 
@@ -128,7 +128,7 @@ namespace Aqua.Tests
 
                 watch.Stop();
 
-                Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(100).And.LessThan(500));
+                Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(90).And.LessThan(500));
             }
         }
 
@@ -165,7 +165,7 @@ namespace Aqua.Tests
         {
             bool calledBack = false;
 
-            settings.UnknownJobHandling = UnknownJobHandling.DedicePerJob;
+            settings.UnknownJobHandling = UnknownJobHandling.DecidePerJob;
             settings.UnknownJobHandlingProvider = (jobDesc) =>
             {
                 Assert.That(jobDesc.Job, Is.EqualTo("UnknownJob"));
@@ -247,7 +247,7 @@ namespace Aqua.Tests
         public void Setup()
         {
             settings = ConsumerSettings.CreateDefault();
-            consumer = new Consumer(new ConnectionSettings("consumertest"), factory, settings);
+            consumer = new Consumer(new ConnectionSettings(StorageAccount.Get(), "consumertest"), factory, settings);
         }
 
         [TearDown]
