@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>$(LibraryTarget)</TargetFramework>
         <SignAssembly>True</SignAssembly>
         <DelaySign>True</DelaySign>
         <AssemblyOriginatorKeyFile>../PublicKey.snk</AssemblyOriginatorKeyFile>
@@ -20,7 +20,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-        <PackageReference Include="WindowsAzure.Storage" Version="9.3.3" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.*" />
+        <PackageReference Include="WindowsAzure.Storage" Version="9.*" />
     </ItemGroup>
 </Project>
